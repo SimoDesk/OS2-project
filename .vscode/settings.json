@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "string.h": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "stdarg.h": "c",
+        "cstdlib": "c"
     }
 }
