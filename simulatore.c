@@ -5,10 +5,27 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
-typedef struct{
+typedef struct {
     double r;
     double i;
 } comp;
+
+typedef struct {
+    comp** m;
+    char id;
+} cmatrix;
+
+cmatrix creaMatrice(int dimensione , char id) {
+    cmatrix m;
+    m.id = id;
+    m.m = malloc(dimensione * sizeof(comp*));
+    for(int i = 0; i < dimensione; i++) {
+        m.m[i] = malloc(dimensione * sizeof(comp));
+    }
+
+    return m;
+}
+
 
 void* error(const char* meggassio, int numAreeOccupate, ...) {
     printf("%s\n", meggassio); // stampa il messaggio d’errore
@@ -24,6 +41,57 @@ void* error(const char* meggassio, int numAreeOccupate, ...) {
     va_end(args);
 
     return NULL; 
+}
+
+comp parseComplesso(char* num) {
+    comp n;
+
+    char operazione = ' ';
+    char immaginary;
+
+    int res = sscanf(num, "%lf%c%c%lf", &n.r, &operazione, &immaginary, &n.i);
+
+    if(res == 3) {
+        //gestire cose comee 12.5-i
+    }
+    if(res == 1) n.i = 0;
+    if(res == 0) {
+        if(sscanf(num, "%c%c%lf", &operazione, &immaginary, &n.i) > 2) {
+            n.r = 0;
+        } else {
+            if(sscanf(num, "%c%lf", &immaginary, &n.i) == 1) {
+                n.i = 1;
+            } else {
+                n.r = 0;
+            }
+            if(sscanf(num, "%c%c", &operazione, &immaginary) == 0) {
+                n.i = 1;
+            }
+        }
+    }
+    if(operazione == '-') n.i = -n.i;
+
+    return n;
+}
+
+void rimuoviCarattere(char* str, char carattere) {
+    int j = 0;
+    for(int i = 0; i < strlen(str); i++) {
+        if(str[i] != carattere) {
+            str[j] = str[i];
+            j++;
+        } 
+    }
+    str[j] = '\0';
+}
+
+void getSubstring(char* sottostringa, char* stringa, int start, int end) {
+    int j = 0;
+    for(int i = start+1; i < end; i++) {
+        sottostringa[j] = stringa[i];
+        j++;
+    }
+    sottostringa[j] = '\0';
 }
 
 char* getContent(char path[]) {
@@ -62,32 +130,11 @@ int getNqubit(char* content) {
 
     while (riga != NULL) {
         if(strncmp(riga, "#qubits", 7) == 0) {
+            char temp[strlen(riga)-6];
+            getSubstring(temp, riga, 7, strlen(riga)+1);
+            rimuoviCarattere(temp, ' ');
 
-            int dimensione = 0;
-            char* num = malloc(1);
-            if (num == NULL) {
-                error("ERRORE di riallocazione memoria in getNqubit \n", 1, num);
-                        return -2;
-            }
-            num[0] = '\0';
-
-            for(int i = 0; riga[i] != '\0'; i++) {
-                if(isdigit(riga[i])) {
-                    char* temp = realloc(num, dimensione+2);
-                    if(temp != NULL) {
-                        num = temp;
-                        num[dimensione] = riga[i];
-                        dimensione++;
-                        num[dimensione] = '\0';
-                    } else {
-                        error("ERRORE di riallocazione memoria in getNqubit \n", 1, num);
-                        return -2;
-                    }
-                }
-            }
-
-            out = atoi(num);
-            free(num);
+            out = atoi(temp);
         }
         riga = strtok(NULL, "\n");  // prossima riga
     }
@@ -97,310 +144,94 @@ int getNqubit(char* content) {
 }
 
 void* getInit(char* content, comp* init) {
-    int initIndex = 0;
 
     char* copiaContent = malloc(strlen(content)+1);
     strcpy(copiaContent, content);
 
     char* riga = strtok(copiaContent, "\n");
 
-    int dimensione = 0;
-    char* num = malloc(1);
-    if (num == NULL) 
-        return error("ERRORE di allocazione memoria in getInit \n", 2, num, copiaContent);
-
-    num[0] = '\0';
-
     while (riga != NULL) {
         if(strncmp(riga, "#init", 5) == 0) {
 
-            int stato = 0;
-            char l;
-            for(int i = 0; riga[i] != '\0'; i++) {
-                l = riga[i];
+            int start = (int)(strchr(riga, '[') - riga);
+            int end = (int)(strchr(riga, ']') - riga);
+            
+            char init_s[end-start];
+            getSubstring(init_s, riga, start, end);
 
-                switch (stato) // macchina a stati finiti per la lettura di init
-                {
-                    case 0: // nello stato Iniziale      
-                        if(l == '[') {  // 
-                            stato = 1;  // se incontro "[" allora sono all'inizio del vettore, vai a stato 1(Attesa Valori Reale)
-                        }               //          
-                        break; 
+            rimuoviCarattere(init_s, ' ');
+            
+            char* num = strtok(init_s, ",");
+            
+            int i = 0;
+            while(num != NULL) {
+                init[i] = parseComplesso(num);
 
-                    case 1: // nello stato di Attesa Valori Reale
-                        if(l == '+' || l == '-') { // se incontro un "+" o un "-" lo aggiungo alla stringa di num e passo allo stato 2(Parte Intera Reale)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 1)\n", 2, num, copiaContent);
+                i++;
+                num = strtok(NULL, ",");
+            }
+        }
+        riga = strtok(NULL, "\n");  // prossima riga       
+    }    
+    free(copiaContent);
+}
 
-                            stato = 2; // passaggio a stato 2
-                            break;
-                        }
-                        if(isdigit(l)) // se incontro una cifra la aggiungo alla stringa di num e passo allo stato 2(Parte Intera Reale)
-                        {
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 1)\n", 2, num, copiaContent);
-                            
-                            stato = 2; // passaggio a stato 2
-                            break;
-                        }
-                        if(!isdigit(l)) // in questo caso, init non è formattata come richiesto nel README
-                            return error("ERRORE di formattazione di Init (stato 1) \n", 2, num, copiaContent);
-                        break;
+cmatrix getMatrix(char* content, char id, int dimensione) {
+    cmatrix out = creaMatrice(dimensione, id);
 
-                    case 2: // nello stato di Parte Intera Reale
-                        if(isdigit(l)) { // se incontro un numero lo aggiungo alla stringa di num e resto nello stato 2(Parte Intera Reale)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 2)\n", 2, num, copiaContent);
+    char* copiaContent = malloc(strlen(content)+1);
+    strcpy(copiaContent, content);
 
-                            stato = 2; // resto in stato 2
-                            break;
-                        }
-                        if(l == '.') { // se incontro un "." lo aggiungo alla stringa di num e passo allo stato 3(Parte Decimale Reale)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 2)\n", 2, num, copiaContent);
+    char* riga = strtok(copiaContent, "\n");
 
-                            stato = 3; //passaggio in stato 3
-                            break;
-                        }
-                        if(l == '+' || l == '-') { // se incontro un "+" o una "-" significa che la parte reale è finita, perciò passo allo stato 4(Parte Intera Immaginaria)
-                            init[initIndex].r = strtod(num, NULL);
+    while (riga != NULL) {
+        if(strncmp(riga, "#define", 7) == 0) {
+            char temp[strlen(riga)-6];
+            getSubstring(temp, riga, 7, strlen(riga)+1);
+            rimuoviCarattere(temp, ' ');
 
-                            dimensione = 0;                            
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 3)\n", 2, num, copiaContent);
+            if(temp[0] == id) {
+                int start = (int)(strchr(riga, '[') - riga);
+                int end = (int)(strchr(riga, ']') - riga)-1;
+                
+                char matrixContent[end-start];
+                getSubstring(matrixContent, riga, start, end);
 
-                            stato = 4; //passaggio in stato 4
-                            break;
-                        }
-                        if(!isdigit(l)) // in questo caso, init non è formattata come richiesto nel README
-                            return error("ERRORE di formattazione di Init (stato 2) \n", 2, num, copiaContent);
-                        break;
+                rimuoviCarattere(matrixContent, '(');
+                rimuoviCarattere(matrixContent, ' ');
 
-                    case 3: // nello stato di Parte Decimale Reale
-                        if(isdigit(l)) { // se incontro un numero lo aggiungo alla stringa di num e resto nello stato 3(Parte Decimale Reale)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 3)\n", 2, num, copiaContent);
+                int i, j = 0;
 
-                            stato = 3; // resto in stato 3
-                            break;
-                        }
-                        if(l == '+' || l == '-') { // se incontro un "+" o una "-" significa che la parte reale è finita, perciò passo allo stato 4(Parte Intera Immaginaria)
-                            init[initIndex].r = strtod(num, NULL);
-
-                            dimensione = 0;                            
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 3)\n", 2, num, copiaContent);
-
-                            stato = 4; //passaggio in stato 4
-                            break;
-                        }
-                        if(!isdigit(l)) // in questo caso, init non è formattata come richiesto nel README
-                            return error("ERRORE di formattazione di Init (stato 3) \n", 2, num, copiaContent);
-                        break;
-                        
-                    case 4: // nello stato di Parte Intera Immaginaria
-                        if(isdigit(l)) { // se incontro un numero lo aggiungo alla stringa di num e resto nello stato 4(Parte Intera Immaginaria)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 4)\n", 2, num, copiaContent);
-
-                            stato = 4; // resto in stato 4
-                            break;
-                        }
-                        if(l == '.') { // se incontro un "." lo aggiungo alla stringa di num e passo allo stato 5(Parte Decimale Immaginaria)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 4)\n", 2, num, copiaContent);
-
-                            stato = 5; //passaggio in stato 5
-                            break;
-                        }
-                        if(l == ',') {
-                            init[initIndex].i = strtod(num, NULL);
-                            initIndex++;
-
-                            dimensione = 0;                            
-                            char* temp = realloc(num, 1);
-                            if(temp != NULL) {
-                                num[0] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 5)\n", 2, num, copiaContent);
-
-                            stato = 6;
-                            break;
-                        }
-                        if(l == ']') {
-                            init[initIndex].i = strtod(num, NULL);
-                            stato = 7; // passaggio allo stato 10(Lettura Completata Con Successo)
-                            break;
-                        }
-                        if(l == 'i') {
-                            stato = 4; // resto in stato 4
-                            break;
-                        }
-                        if(!isdigit(l)) // in questo caso, init non è formattata come richiesto nel README
-                            return error("ERRORE di formattazione di Init (stato 4) \n", 2, num, copiaContent);
-                        break;
-
-                    case 5: // nello stato di Parte Decimale Immaginaria
-                        if(isdigit(l)) { // se incontro un numero lo aggiungo alla stringa di num e resto nello stato 5(Parte Decimale Immaginaria)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 5)\n", 2, num, copiaContent);
-
-                            stato = 5; // resto in stato 5
-                            break;
-                        }
-                        if(l == ']') {
-                            init[initIndex].i = strtod(num, NULL);
-                            stato = 7; // passaggio allo stato 10(Lettura Completata Con Successo)
-                            break;
-                        }
-                        if(l == ',') { // se  incontro ',' vuol dire che la parte decimale immaginaria è conclusa, perciò passo allo stato 6(Attesa)
-                            init[initIndex].i = strtod(num, NULL);
-                            initIndex++;
-
-                            dimensione = 0;                            
-                            char* temp = realloc(num, 1);
-                            if(temp != NULL) {
-                                num[0] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 5)\n", 2, num, copiaContent);
-
-                            stato = 6; //passaggio in stato 6
-                            break;
-                        }
-                        if(!isdigit(l)) // in questo caso, init non è formattata come richiesto nel README
-                            return error("ERRORE di formattazione di Init (stato 5) \n", 2, num, copiaContent);
-                        break;
-
-                    case 6: // nello stato di Attesa
-                        if(l == ']') {
-                            stato = 7; // passaggio allo stato 10(Lettura Completata Con Successo)
-                            break;
-                        }
-                        if(l == '+' || l == '-') { // se incontro un "+" o un "-" lo aggiungo alla stringa di num e passo allo stato 2(Parte Intera Reale)
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 6)\n", 2, num, copiaContent);
-
-                            stato = 2; // passaggio a stato 2
-                            break;
-                        }
-                        if(!isdigit(l)) { // se non incontro un numero o init non è ancora terminato resto nello stato 6(Attesa)
-                            stato = 6; // resto in stato 6
-                            break;
-                        }
-                        if(isdigit(l)) // se incontro una cifra la aggiungo alla stringa di num e passo allo stato 2(Parte Intera Reale)
-                        {
-                            char* temp = realloc(num, dimensione+2);
-                            if(temp != NULL) {
-                                num = temp;
-                                num[dimensione] = l;
-                                dimensione++;
-                                num[dimensione] = '\0';
-                            } else 
-                                return error("ERRORE di riallocazione memoria in getInit (Stato 6)\n", 2, num, copiaContent);
-                            
-                            stato = 2; // passaggio a stato 2
-                            break;
-                        }
-                        break;
-                        
-                    default:
-                        break;
+                char* vettoreComplesso = strtok(matrixContent, ")");
+                while(vettoreComplesso != NULL) {
+                    printf("%s\n", vettoreComplesso);
+                    
+                    vettoreComplesso = strtok(NULL, ")");
                 }
             }
-            if(stato != 7) 
-                return error("ERRORE nella lettura di init! \n", 2, num, copiaContent);
-                        
-            free(num);
-            goto out;
         }
         riga = strtok(NULL, "\n");  // prossima riga
-        
     }
-    out:
     free(copiaContent);
 }
 
 int main() {
-    char* initPath = getContent("input/init-ex.txt");
-    int nQubits = getNqubit(initPath);
+    char* initContent = getContent("input/init-ex.txt");
+    int nQubits = getNqubit(initContent);
     int dim = 1 << nQubits;
- 
+
     comp init[dim];
-    getInit(initPath, init);
-    printf("numero Qubit: %i\n", nQubits);
-    for(int k = 0; k < (sizeof(init)/sizeof(init[0])); k++) {
-        printf("init[%i]=%.3f i%.3f\n", k, init[k].r, init[k].i);
+    getInit(initContent, init);
+
+    free(initContent);
+    
+    printf("dimensione vettore: %i. Qubits = %i\n", dim, nQubits);
+    for(int i = 0; i < dim; i++) {
+        printf("complesso %i: %lf i%lf\n", i, init[i].r, init[i].i);
     }
 
-    free(initPath);
+    char* circContent = getContent("input/circ-ex.txt");
+    getMatrix(circContent, 'X', dim);
+
     return 0;
 }
-
-
-
