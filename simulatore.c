@@ -52,19 +52,18 @@ comp parseComplesso(char* num) {
     int res = sscanf(num, "%lf%c%c%lf", &n.r, &operazione, &immaginary, &n.i);
 
     if(res == 3) {
-        //gestire cose comee 12.5-i
+        sscanf(num, "%lf%c%c", &n.r, &operazione, &immaginary);
+        n.i = 1;
     }
     if(res == 1) n.i = 0;
     if(res == 0) {
-        if(sscanf(num, "%c%c%lf", &operazione, &immaginary, &n.i) > 2) {
-            n.r = 0;
+        n.r = 0;
+        if(sscanf(num, "%c%c%lf", &operazione, &immaginary, &n.i) == 3) {
         } else {
             if(sscanf(num, "%c%lf", &immaginary, &n.i) == 1) {
                 n.i = 1;
-            } else {
-                n.r = 0;
             }
-            if(sscanf(num, "%c%c", &operazione, &immaginary) == 0) {
+            if(sscanf(num, "%c%c", &operazione, &immaginary) >= 1) {
                 n.i = 1;
             }
         }
@@ -176,9 +175,7 @@ void* getInit(char* content, comp* init) {
     free(copiaContent);
 }
 
-cmatrix getMatrix(char* content, char id, int dimensione) {
-    cmatrix out = creaMatrice(dimensione, id);
-
+void getMatrix(char* content, char id, int dimensione) {
     char* copiaContent = malloc(strlen(content)+1);
     strcpy(copiaContent, content);
 
@@ -202,11 +199,18 @@ cmatrix getMatrix(char* content, char id, int dimensione) {
 
                 int i, j = 0;
 
-                char* vettoreComplesso = strtok(matrixContent, ")");
+                char* pt1, pt2;
+                char* vettoreComplesso = strtok_r(matrixContent, ")", &pt1);
                 while(vettoreComplesso != NULL) {
-                    printf("%s\n", vettoreComplesso);
-                    
-                    vettoreComplesso = strtok(NULL, ")");
+                    char* numComplesso = strtok_r(vettoreComplesso, ",", &pt2);
+                    while(numComplesso != NULL) {
+
+                        printf("%s\n", numComplesso);
+
+                        numComplesso = strtok_r(NULL, ",", &pt2);
+                    }
+                                       
+                    vettoreComplesso = strtok_r(NULL, ")", &pt1);
                 }
             }
         }
@@ -231,7 +235,9 @@ int main() {
     }
 
     char* circContent = getContent("input/circ-ex.txt");
-    getMatrix(circContent, 'X', dim);
+
+    // creare vettore di cmatrix di dimensinoe nCirc(da calcolare) e modificare getMatrix che deve passare in input la struct cmatrix di turno
+    getMatrix(circContent, 'I', dim);
 
     return 0;
 }
