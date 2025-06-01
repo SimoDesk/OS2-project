@@ -1,8 +1,9 @@
 simulatore: simulatore.c
-	@gcc -o simulatore simulatore.c
+	@gcc -o simulatore simulatore.c -lm
 	@./simulatore
 
 clean:
 	@rm -f *.o simulatore
-	
-.PHONY: clean, simulatore
+
+.PHONY: clean simulatore
+

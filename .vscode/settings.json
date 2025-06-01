@@ -3,6 +3,9 @@
         "string.h": "c",
         "string_view": "c",
         "stdarg.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "cmath": "c",
+        "stdlib.h": "c",
+        "math.h": "c"
     }
 }
