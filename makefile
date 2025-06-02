@@ -1,10 +1,8 @@
-simulatore: simulatore.c
-	cd src
-	@gcc -o simulatore simulatore.c -lm
+simulatore: src/simulatore.c
+	@gcc -o simulatore src/simulatore.c src/operations.c src/util.c src/types.c src/stringManipolation.c src/dataGetter.c src/fileManagement.c -lm
 	@./simulatore
 
 clean:
-	cd src
 	@rm -f *.o simulatore
 
 .PHONY: clean simulatore

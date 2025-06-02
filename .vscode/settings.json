@@ -6,6 +6,16 @@
         "cstdlib": "c",
         "cmath": "c",
         "stdlib.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "stdio.h": "c",
+        "operation.h": "c",
+        "types.h": "c",
+        "operations.h": "c",
+        "stdbool.h": "c",
+        "util.h": "c",
+        "typesoperations.h": "c",
+        "stringmanipolation.h": "c",
+        "datagetter.h": "c",
+        "filemanagement.h": "c"
     }
 }
