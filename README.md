@@ -22,6 +22,7 @@ Contenuto richiesto:
   - Essere racchiuso tra parentesi quadre `[ ]`
   - Contenere numeri complessi separati da virgole
   - Essere ben formattato (vedi sezione "Formattazione numeri complessi")
+  Il simulatore selezionerà **solo la prima riga** che inizia con questo identificatore, ignorando le successive.
 
 ---
 
@@ -34,9 +35,10 @@ Contenuto richiesto:
   - Essere racchiusa tra parentesi quadre `[ ]`
   - Contenere righe (vettori) racchiuse tra parentesi tonde `( )`
   - Avere numeri complessi formattati correttamente, separati da virgole
+  Il simulatore selezionerà **solo la prima riga** che inizia con questo identificatore, ignorando le successive.
 
 - Una riga che inizia con `#circ`, seguita da una sequenza di lettere che identificano le matrici da applicare nel circuito.  
-  Anche in questo caso, verrà usata **solo la prima riga** con questo identificatore.
+  Il simulatore selezionerà **solo la prima riga** che inizia con questo identificatore, ignorando le successive.
 
 ---
 
