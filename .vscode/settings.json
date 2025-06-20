@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stringmanipolation.h": "c",
+        "datagetter.h": "c",
+        "filemanagement.h": "c"
+    }
+}

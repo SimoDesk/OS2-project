@@ -30,7 +30,6 @@ int main() {
 
     getCirc(circContent, circ); // Con il metodo getCirc, inserisco dinamicamente nella stringa circ le porte che fanno parte del ciruito definite nel file "circ.txt" dopo "#circ"
     int nPort = strlen(circ);   // In nPort, memorizzo la quantitò di porte che fanno parte del circuito
-    
 
     cmatrix port[nPort];    // Creo un vettore di matrici di numeri complessi, ognuna delle quali corrisponderà ad una porta
     for(int i = 0; i < nPort; i++) {
@@ -61,12 +60,13 @@ int main() {
 
     printf("Vinit di dimensione %i (%i qubits):\n", dim, nQubits);  // 
     printVector(init, dim);                                         //
+    /*
     for(int p = 0; p < nPort; p++) {                                // Stampo in stdout, a scopo di verifica di correzione dei dati, il vettore di input, la dimensione corrispondente
         printMatrix(port[p]);                                       // ai qBit inseriti, e tutte le matrici lette. Il tutto usando metodi ad hoc per la stampa di vettori e matrici
     }                                                               //
     printf("\nStato finale del circuito:\n");                       // Infine, stampo in stdout il vettore corrispondente allo stato finale del circuito
     printVector(vfin, dim);                                         //
-    
+    */
 
     freeMatrice(cout);                  //
     freeMatrice(temp);                  //  Libero attraverso un metodo ad hoc gli spazi di memoria dedicati alle matrici cout e temp, nonché

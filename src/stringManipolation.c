@@ -3,7 +3,8 @@
 // Il metodo rimuoviCarattere() toglie dalla stringa in input "str" tutti i caratteri uguali al parametro in input "carattere"
 void rimuoviCarattere(char* str, char carattere) {
     int j = 0;  // Inizializzo un contatore che corrisponderà alla nuova lunghezza della stringa contando gli eventuali caratteri rimossi
-    for(int i = 0; i < strlen(str); i++) {
+    int len = strlen(str);
+    for(int i = 0; i < len; i++) {
         if(str[i] != carattere) {   
             str[j] = str[i];    // Per ogni carattere della stringa in input "str", controllo se questo è diverso dal parametro in input "carattere" e se lo è lo aggiungo alla nuova stringa filtrata
             j++;    // incremento del contatore

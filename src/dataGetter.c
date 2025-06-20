@@ -47,11 +47,13 @@ void* getInit(char* content, comp* init, int dim) {
     if(copiaContent == NULL) error("Errore allocazione memoria in getInit");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
 
-    char* riga = strtok(copiaContent, "\n");     // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
+    rimuoviCarattere(copiaContent, '\n');
+
+    char* riga = strtok(copiaContent, "#");     // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
 
     bool found = false; // Il parametro "found" verrà impostato a True qualora il vettore cercato dovesse essere trovato, e verrà lasciato a False altrimenti
     while (riga != NULL) {
-        if(strncmp(riga, "#init", 5) == 0) {    // Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#init"
+        if(strncmp(riga, "init", 4) == 0) {    // Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#init"
             found = true;   // se l'identificatore "#init" è stato trovato all'inizio della riga allora imposto il parametro "found" a True
 
             int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi del vettore preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
@@ -60,7 +62,8 @@ void* getInit(char* content, comp* init, int dim) {
             char init_s[end-start]; // Dichiaro una stringa "init_s" che memorizzerà la sottostringa contenente solo e unicamente il vettore dichiarato dopo "#init"
             getSubstring(init_s, riga, start, end); // Con il metodo getSubstring() creo in "init_s" una copia della sottostringa corrispondente al vettore dichiarato dopo "#init"
 
-            rimuoviCarattere(init_s, ' ');  // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
+            rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
+            rimuoviCarattere(copiaContent, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
             
             char* num = strtok(init_s, ","); // Utilizzo il metodo strtok() con divisore "," per poter controllare singolarmente i numeri complessi nel vettore
             
@@ -74,7 +77,7 @@ void* getInit(char* content, comp* init, int dim) {
                 if(i >= dim) break; // Se dovessero essere stati inseriti più numeri complessi di quanto ammesso dal valore definito dopo "#qubit",
             }                       // il programma prenda in considerazione solo i primi che rientrano nel valore consentito
         }
-        riga = strtok(NULL, "\n");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()   
+        riga = strtok(NULL, "#");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()   
         
     }    
     free(copiaContent); // Libero lo spazio di memoria dedicato alla copia del contenuto del file, che ora non serve più
@@ -95,14 +98,17 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
     if(copiaContent == NULL) error("Errore allocazione memoria in getMatrix");  // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
 
-    char* riga = strtok(copiaContent, "\n");    // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
+    rimuoviCarattere(copiaContent, '\n');
+
+    char* riga = strtok(copiaContent, "#");    // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
 
     bool found = false; // Il parametro "found" verrà impostato a True qualora la matrice cercata dovesse essere trovata, e verrà lasciato a False altrimenti
     while (riga != NULL) {
-        if(strncmp(riga, "#define", 7) == 0) {  // Finché ci sono righe nel file, controllo se i primi 7 caratteri della riga corrente corrispondono all'identificatore "#define"
-            char tempStr[strlen(riga)-6];   // Creo una stringa che conterrà la sottostringa dopo "#define" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso
-            getSubstring(tempStr, riga, 7, strlen(riga)+1); // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
+        if(strncmp(riga, "define", 6) == 0) {  // Finché ci sono righe nel file, controllo se i primi 7 caratteri della riga corrente corrispondono all'identificatore "#define"
+            char* tempStr = malloc(strlen(riga)-6);   // Creo una stringa che conterrà la sottostringa dopo "#define" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso
+            getSubstring(tempStr, riga, 6, strlen(riga)+1); // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
             rimuoviCarattere(tempStr, ' '); // Rimuovo gli spazi dalla stringa "tempStr"
+            rimuoviCarattere(tempStr, '\t'); // Rimuovo i tab dalla stringa "tempStr"
 
             if(tempStr[0] == id) {  // Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input
                 found = true;   // se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True
@@ -110,7 +116,7 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
                 int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi della matrice preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
                 int end = (int)(strchr(riga, ']') - riga)-1;    // Dando per scontato che la sintassi della matrice preveda un solo carattere ']', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "end"
                 
-                char matrixContent[end-start];  // Dichiaro una stringa "matrixContent" che memorizzerà la sottostringa contenente solo e unicamente la matrice dichiarato dopo "#define" con il corretto id
+                char* matrixContent = malloc(end-start); // Dichiaro una stringa "matrixContent" che memorizzerà la sottostringa contenente solo e unicamente la matrice dichiarato dopo "#define" con il corretto id
                 getSubstring(matrixContent, riga, start, end);  // Con il metodo getSubstring() creo in "matrixContent" una copia della sottostringa corrispondente al vettore dichiarato dopo "#define" con il corretto id
 
                 rimuoviCarattere(matrixContent, '(');   // Nella sottostringa, rimuovo tutte le '(', in quanto superflue
@@ -137,9 +143,11 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
                     i++;    // Incremento l'indice di riga             
                     vettoreComplesso = strtok_r(NULL, ")", &pt1);   // Proseguo nel controllo dei vettori nella matrice, andando al prossimo chiamando nuovamente strtok()
                 }
+                free(matrixContent); // Libero lo spazio di memoria dedicato al contenuto della matrice, che ora non serve più
             }
+            free(tempStr); // Libero lo spazio di memoria dedicato alla riga dopo il "#define", che ora non serve più
         }
-        riga = strtok(NULL, "\n");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok() 
+        riga = strtok(NULL, "#");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok() 
         if(found) riga = NULL;  // Seleziono solo la prima riga corretta che incontro, ignorando altre eventuali
     }
     free(copiaContent); // Libero lo spazio di memoria dedicato alla copia del contenuto del file, che ora non serve più
@@ -155,16 +163,19 @@ void* getCirc(char* content, char* circ) {
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
     if(copiaContent == NULL) error("Errore allocazione memoria in getCirc");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
+    
+    rimuoviCarattere(copiaContent, '\n');
 
-    char* riga = strtok(copiaContent, "\n");    // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
+    char* riga = strtok(copiaContent, "#");    // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
 
     bool found = false; // Il parametro "found" verrà impostato a True qualora la sequenza cercata dovesse essere trovata, e verrà lasciato a False altrimenti
     while (riga != NULL) {
-        if(strncmp(riga, "#circ", 5) == 0) {    // Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#circ"
+        if(strncmp(riga, "circ", 4) == 0) {    // Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#circ"
             found = true;   // se l'identificatore "#circ" è stato trovato all'inizio della riga allora imposto il parametro "found" a True
 
             char tempStr[strlen(riga)-4];   // Creo una stringa che conterrà il valore specificato dopo "#circ" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso
-            getSubstring(tempStr, riga, 5, strlen(riga)+1);  // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
+            getSubstring(tempStr, riga, 4, strlen(riga)+1);  // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
+            rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
             rimuoviCarattere(tempStr, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
 
             char* temp = realloc(circ, strlen(tempStr)+1 * sizeof(char));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
@@ -177,9 +188,8 @@ void* getCirc(char* content, char* circ) {
             circ = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
 
             strcpy(circ, tempStr);  // Copio la sequenza di id dentro il parametro "circ"
-
         }
-        riga = strtok(NULL, "\n");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()  
+        riga = strtok(NULL, "#");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()  
         if(found) riga = NULL;  // Seleziono solo la prima riga corretta che incontro, ignorando altre eventuali  
     }    
     free(copiaContent); // Libero lo spazio di memoria dedicato alla copia del contenuto del file, che ora non serve più
