@@ -8,7 +8,7 @@ typedef struct {    // Struttura che rappresenta un numero complesso
 
 typedef struct {    // Struttura che rappresenta le matrici di numeri complessi
     comp** m;   // Il parametro m in quanto puntatore di puntatori di numeri complessi, rappresenta la matrice vera e propria
-    char id;    // Il valore id conterrà la lettera identificativa della matrice
+    char* id;    // Il valore id conterrà la lettera identificativa della matrice
     int dim;    // Il valore dim conterrà la dimensione della matrice, che in quanto quadrata vede sufficente una sola dimensione
 } cmatrix;
 

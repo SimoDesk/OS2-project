@@ -6,7 +6,8 @@
 
 // Il metodo creaMatrice() inizializza lo spazio necessario per i dati della matrice, ne memorizza la dimensione e assegna un carattere "nullo" all'id
 void creaMatrice(cmatrix* m, int dimensione) {
-    m->id = '-';    // Carattere generico per l'id che verrà comunque sovrascritto in seguito
+    m->id = malloc(1 * sizeof(char));
+    m->id = "\0";    // Carattere generico per l'id che verrà comunque sovrascritto in seguito
     m->dim = dimensione;    // Memorizzio per la matrice la sua dimensione per rendere più agevoli calcoli successivi
     m->m = malloc(dimensione * sizeof(comp*));  // Alloco lo spazio necessario per contenere una quantità di puntatori di complessi corrispondente alla dimensione in input
     if(m->m == NULL) error("Errore allocazione memoria delle righe in creaMatrice");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione

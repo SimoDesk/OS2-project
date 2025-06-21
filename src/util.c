@@ -28,7 +28,7 @@ void printVector(comp* vett, int dim) {
 // Il metodo printMatrix() ha lo scopo di stampare in maniera leggibile la matrice di numeri complessi preso in input
 void printMatrix(cmatrix matrix) {
     int dim = matrix.dim;
-    printf("Matrice %c: \n", matrix.id);
+    printf("Matrice %s: \n", matrix.id);
     for(int i = 0; i < dim; i++) {
         for(int j = 0; j < dim; j++) {
             printf("[%i][%i] ", i, j);

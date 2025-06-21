@@ -91,7 +91,7 @@ void* getInit(char* content, comp* init, int dim) {
 
 // Il metodo getMatrix cerca la matrice di numeri complessi specificata dopo "#define" e l'id corrispondente all'omonimo parametro in input.
 // La ricreca avviene nel contenuto del file passato anch'esso passato in input, e se la matrice viene trovata viene assegnata al parametro in input "m"
-void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
+void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
     m->id = id; // Memorizzo l'id corrispondente della matrice trovato dopo l'identificatore "#circ" nella informazioni della matrice stessa
 
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
@@ -110,7 +110,10 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
             rimuoviCarattere(tempStr, ' '); // Rimuovo gli spazi dalla stringa "tempStr"
             rimuoviCarattere(tempStr, '\t'); // Rimuovo i tab dalla stringa "tempStr"
 
-            if(tempStr[0] == id) {  // Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input
+            char* idFound = malloc(strlen(id)+1);
+            getSubstring(idFound, tempStr, -1, strlen(id));
+
+            if(strcmp(idFound, id) == 0) {  // Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input
                 found = true;   // se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True
 
                 int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi della matrice preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
@@ -146,6 +149,7 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
                 free(matrixContent); // Libero lo spazio di memoria dedicato al contenuto della matrice, che ora non serve più
             }
             free(tempStr); // Libero lo spazio di memoria dedicato alla riga dopo il "#define", che ora non serve più
+            free(idFound);
         }
         riga = strtok(NULL, "#");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok() 
         if(found) riga = NULL;  // Seleziono solo la prima riga corretta che incontro, ignorando altre eventuali
@@ -153,7 +157,7 @@ void getMatrix(cmatrix* m, char* content, char id, int dimensione) {
     free(copiaContent); // Libero lo spazio di memoria dedicato alla copia del contenuto del file, che ora non serve più
 
     if(!found) {
-        fprintf(stderr, "identificatore #define %c NON TROVATO\n", id); // Qualora l'identificatore "#init" non dovesse essere stato trovato all'inizio di nessuna riga
+        fprintf(stderr, "identificatore #define (%s) NON TROVATO\n", id); // Qualora l'identificatore "#init" non dovesse essere stato trovato all'inizio di nessuna riga
         exit(1);                                                        // il programma verrebbe interrotto con un errore
     }
 }
@@ -165,6 +169,7 @@ void* getCirc(char* content, char* circ) {
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
     
     rimuoviCarattere(copiaContent, '\n');
+    rimuoviCarattere(copiaContent, '\t');
 
     char* riga = strtok(copiaContent, "#");    // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
 
@@ -176,7 +181,7 @@ void* getCirc(char* content, char* circ) {
             char tempStr[strlen(riga)-4];   // Creo una stringa che conterrà il valore specificato dopo "#circ" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso
             getSubstring(tempStr, riga, 4, strlen(riga)+1);  // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
             rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
-            rimuoviCarattere(tempStr, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
+            //rimuoviCarattere(tempStr, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
 
             char* temp = realloc(circ, strlen(tempStr)+1 * sizeof(char));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
                                                                             // a memorizzare tutti gli id senza sprecare memoria
