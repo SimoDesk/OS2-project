@@ -14,6 +14,6 @@ void* getInit(char* content, comp* init, int dim);
 void getMatrix(cmatrix* m, char* content, char* id, int dimensione);
 
 // Il metodo getCirc cerca la sequenza di id delle matrici specificata dopo "#circ" nel contenuto del file passato in input, e se la trova viene assegnata al parametro in input "circ"
-void* getCirc(char* content, char* circ);
+void* getCirc(char* content, char** circ);
 
 #endif // DATA_GETTER_H

@@ -42,12 +42,14 @@ int getNqubit(char* content) {
 }
 
 // Il metodo getInit cerca il vettore di numeri complessi specificato dopo "#init" nel contenuto del file passato in input, e se lo trova lo restituisce in output
-void* getInit(char* content, comp* init, int dim) {
+void getInit(char* content, comp* init, int dim) {
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
     if(copiaContent == NULL) error("Errore allocazione memoria in getInit");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
 
     rimuoviCarattere(copiaContent, '\n');
+    rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
+    rimuoviCarattere(copiaContent, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
 
     char* riga = strtok(copiaContent, "#");     // Utilizzo il metodo strtok() con divisore "\n" per poter controllare singolarmente le righe del file
 
@@ -61,9 +63,6 @@ void* getInit(char* content, comp* init, int dim) {
             
             char init_s[end-start]; // Dichiaro una stringa "init_s" che memorizzerà la sottostringa contenente solo e unicamente il vettore dichiarato dopo "#init"
             getSubstring(init_s, riga, start, end); // Con il metodo getSubstring() creo in "init_s" una copia della sottostringa corrispondente al vettore dichiarato dopo "#init"
-
-            rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
-            rimuoviCarattere(copiaContent, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
             
             char* num = strtok(init_s, ","); // Utilizzo il metodo strtok() con divisore "," per poter controllare singolarmente i numeri complessi nel vettore
             
@@ -116,6 +115,16 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
             if(strcmp(idFound, id) == 0) {  // Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input
                 found = true;   // se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True
 
+                char* temp = realloc(m->id, (strlen(id)+1) * sizeof(char));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
+                                                                            // a memorizzare tutti gli id senza sprecare memoria
+                if (!temp) {    
+                    free(copiaContent);
+                    fprintf(stderr, "Errore realloc\n");    //  dopo aver liberato lo spazio di memoria occupato
+                    exit(1);                                //
+                }
+                m->id = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
+                strcpy(m->id, id);
+                
                 int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi della matrice preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
                 int end = (int)(strchr(riga, ']') - riga)-1;    // Dando per scontato che la sintassi della matrice preveda un solo carattere ']', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "end"
                 
@@ -163,7 +172,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
 }
 
 // Il metodo getCirc cerca la sequenza di id delle matrici specificata dopo "#circ" nel contenuto del file passato in input, e se la trova viene assegnata al parametro in input "circ"
-void* getCirc(char* content, char* circ) {  
+void getCirc(char* content, char** circ) {  
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
     if(copiaContent == NULL) error("Errore allocazione memoria in getCirc");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
@@ -180,19 +189,18 @@ void* getCirc(char* content, char* circ) {
 
             char tempStr[strlen(riga)-4];   // Creo una stringa che conterrà il valore specificato dopo "#circ" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso
             getSubstring(tempStr, riga, 4, strlen(riga)+1);  // Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore)
-            rimuoviCarattere(copiaContent, '\t'); // Nella sottostringa, rimuovo tutti i tab, in quanto superflui
-            //rimuoviCarattere(tempStr, ' '); // Nella sottostringa, rimuovo tutti gli spazi, in quanto superflui
 
-            char* temp = realloc(circ, strlen(tempStr)+1 * sizeof(char));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
+            char* temp = realloc(*circ, strlen(tempStr)+1 * sizeof(char));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
                                                                             // a memorizzare tutti gli id senza sprecare memoria
             if (!temp) {    
-                free(circ);                             // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
+                free(copiaContent);
+                free(*circ);                             // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
                 fprintf(stderr, "Errore realloc\n");    //  dopo aver liberato lo spazio di memoria occupato
                 exit(1);                                //
             }
-            circ = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
+            *circ = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
 
-            strcpy(circ, tempStr);  // Copio la sequenza di id dentro il parametro "circ"
+            strcpy(*circ, tempStr);  // Copio la sequenza di id dentro il parametro "circ"
         }
         riga = strtok(NULL, "#");  // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()  
         if(found) riga = NULL;  // Seleziono solo la prima riga corretta che incontro, ignorando altre eventuali  

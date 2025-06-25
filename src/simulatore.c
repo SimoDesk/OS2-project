@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "../include/types.h"
 #include "../include/operations.h"
@@ -9,16 +10,27 @@
 #include "../include/dataGetter.h"
 #include "../include/fileManagement.h"
 
+typedef struct {
+    cmatrix* m1;
+    cmatrix* m2;
+    cmatrix* res;
+} thread_data;
+
+void* moltiplicaMatrici_thread(void* arg) {
+    thread_data* data = (thread_data*) arg;
+    moltiplicaMatrici(*data->m1, *data->m2, *data->res);
+
+    pthread_exit(NULL);
+}
+
 int main() {
     char fileName[100];
 
     printf("Inserisci il nome del file init: ");
     scanf("%99s", fileName);  // massimo 99 caratteri per evitare buffer overflow
 
-    char* initPath = malloc((6+strlen(fileName)) * sizeof(char));
-    strcpy(initPath, "input/");
-    strcat(initPath, fileName);
-    initPath[strlen(initPath)] = '\0';
+    char* initPath = malloc(strlen("input/") + strlen(fileName) + 1);
+    snprintf(initPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
 
     char* initContent = getContent(initPath);   // All'interno della stringa initContent memorizzo il contenuto del File "init.txt" 
 
@@ -37,10 +49,8 @@ int main() {
     printf("Inserisci il nome del file circ: ");
     scanf("%99s", fileName);  // massimo 99 caratteri per evitare buffer overflow
 
-    char* circPath = malloc((6+strlen(fileName)) * sizeof(char));
-    strcpy(circPath, "input/");
-    strcat(circPath, fileName);
-    circPath[strlen(circPath)] = '\0';
+    char* circPath = malloc(strlen("input/") + strlen(fileName) + 1);
+    snprintf(circPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
 
     char* circContent = getContent(circPath);   // All'interno della stringa initContent memorizzo il contenuto del File "circ.txt" 
 
@@ -51,11 +61,11 @@ int main() {
                                             // nel file "circ.txt" dopo "#circ"
     if(circStr == NULL) error("Errore allocazione memoria di circ (main)");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
 
-    getCirc(circContent, circStr); // Con il metodo getCirc, inserisco dinamicamente nella stringa circ le porte che fanno parte del ciruito definite nel file "circ.txt" dopo "#circ"
+    getCirc(circContent, &circStr); // Con il metodo getCirc, inserisco dinamicamente nella stringa circ le porte che fanno parte del ciruito definite nel file "circ.txt" dopo "#circ"
     
     int nPort = 0;  // In nPort, memorizzo la quantitò di porte che fanno parte del circuito
 
-    char** circ;
+    char** circ = NULL;
     char* id = strtok(circStr, " ");
     while (id != NULL)
     {
@@ -70,7 +80,7 @@ int main() {
             }
             circ = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
 
-            circ[nPort-1] = malloc(strlen(id)+1 * sizeof(char));
+            circ[nPort-1] = malloc((strlen(id)+1) * sizeof(char));
             strcpy(circ[nPort-1], id);
 
         id = strtok(NULL, " ");   
@@ -82,11 +92,6 @@ int main() {
         getMatrix(&port[i], circContent, circ[i], dim); // Con il metodo getMatrix, assegno ad ogni coordinata della matrice corrispondente alla porta i corretti valori 
                                                         // corrispondenti contenuti nel file "circ.txt" dopo "#define" e la lettera corrispondente contenuta in circ 
     }
-
-    for(int i = 0; i < nPort; i++) {
-        free(circ[i]);
-    }
-    free(circ);     // Libero lo spazio di memoria dedicato alla sequenza di porte, che ora non serve più
     free(circContent);  // Libero lo spazio di memoria dedicato al contenuto file "circ.txt", che ora non serve più
 
     cmatrix cout;   // Creo una matrice cout, che fungerà da accumulatrice durante la serie di moltiplicazioni tra matrici
@@ -95,7 +100,31 @@ int main() {
     cmatrix temp;   // Creo una matrice temp, che nella serie di moltiplicazioni tra matrici avrà il ruolo di contenere una copia del contenuto della matrice risultante
                     // della moltiplicazione precedente, così da non creare sovrascrizioni durante i calcoli
     creaMatrice(&temp, dim);    // Inizializzo una struttura matrice appena citata di dimensione dim
+/*
+    pthread_t t;
+    
+    cmatrix res;
+    creaMatrice(&res, dim);
 
+    thread_data d1 = {&port[0], &port[1], &res};
+
+    pthread_create(&t, NULL, moltiplicaMatrici_thread, &d1);
+
+    pthread_join(t, NULL);
+
+    printf("THREAD OUTPUT:\n");
+    printMatrix(*d1.res);
+
+    freeMatrice(*d1.res);
+*/
+    /*
+    printf("Vinit di dimensione %i (%i qubits):\n", dim, nQubits);  // 
+    printVector(init, dim);                                         //
+    
+    for(int p = 0; p < nPort; p++) {                                // Stampo in stdout, a scopo di verifica di correzione dei dati, il vettore di input, la dimensione corrispondente
+        printMatrix(port[p]);                                       // ai qBit inseriti, e tutte le matrici lette. Il tutto usando metodi ad hoc per la stampa di vettori e matrici
+    }                                                               //
+    */
     copiaMatrice(&temp, port[nPort-1]); // Copio in temp il contenuto dell'ultima matrice del circuito
 
     for(int i = nPort-1; i > 0; i--) {
@@ -106,18 +135,15 @@ int main() {
 
     comp vfin[dim]; // Creo il vettore che rappresenterà la stato finale del circuito di dimenione dim
     calcOut(cout, init, vfin);  // Calcolo il contenuto del vettore finale
-
-    /*
-    printf("Vinit di dimensione %i (%i qubits):\n", dim, nQubits);  // 
-    printVector(init, dim);                                         //
     
-    for(int p = 0; p < nPort; p++) {                                // Stampo in stdout, a scopo di verifica di correzione dei dati, il vettore di input, la dimensione corrispondente
-        printMatrix(port[p]);                                       // ai qBit inseriti, e tutte le matrici lette. Il tutto usando metodi ad hoc per la stampa di vettori e matrici
-    }                                                               //
-    */
     printf("\nStato finale del circuito:\n");                       // Infine, stampo in stdout il vettore corrispondente allo stato finale del circuito
     printVector(vfin, dim);                                         //
     
+
+    for(int i = 0; i < nPort; i++) {
+        free(circ[i]);
+    }
+    free(circ);     // Libero lo spazio di memoria dedicato alla sequenza di porte, che ora non serve più
 
     freeMatrice(cout);                  //
     freeMatrice(temp);                  //  Libero attraverso un metodo ad hoc gli spazi di memoria dedicati alle matrici cout e temp, nonché
