@@ -22,7 +22,7 @@ void copiaComplesso(comp* dest, comp part);
 void copiaMatrice(cmatrix* dest, cmatrix part);
 
 // Il metodo freeMatrice() libera gli spazi di memoria dedicati ai numeri complessi e ai puntatori di questi ultimi nella matrice di numeri complessi passata in input
-void freeMatrice(cmatrix m);
+void freeMatrice(cmatrix* m);
 
 // Il metodo parseComplesso() si occpua di trasformare il contenuto della stringa "num" in corrispondenti valori accettabili da inserire nel parametro "n", entrambi passati in input
 void parseComplesso(comp* n, char* num);

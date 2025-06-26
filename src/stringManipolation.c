@@ -17,7 +17,7 @@ void rimuoviCarattere(char* str, char carattere) {
 // e l'indice di fine "end" della stringa di partenza
 void getSubstring(char* sottostringa, char* stringa, int start, int end) {
     int j = 0;  // Inizializzo un contatore che corrisponderà alla lunghezza della sottostringa
-    for(int i = start+1; i < end; i++) {
+    for(int i = start; i < end && stringa[i] != '\0'; i++) {
         sottostringa[j] = stringa[i];   // Per ogni carattere del segmento evidentziato dai parametri in input, ne creo una copia dalla stringa di partenza alla sottostringa
         j++;    // incremento il contatore
     }

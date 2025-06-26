@@ -7,6 +7,7 @@
 // Il metodo creaMatrice() inizializza lo spazio necessario per i dati della matrice, ne memorizza la dimensione e assegna un carattere "nullo" all'id
 void creaMatrice(cmatrix* m, int dimensione) {
     m->id = malloc(1 * sizeof(char));
+    if(m->id == NULL) error("Errore allocazione memoria dell'id di una matrice (types.c)");
     m->dim = dimensione;    // Memorizzio per la matrice la sua dimensione per rendere più agevoli calcoli successivi
     m->m = malloc(dimensione * sizeof(comp*));  // Alloco lo spazio necessario per contenere una quantità di puntatori di complessi corrispondente alla dimensione in input
     if(m->m == NULL) error("Errore allocazione memoria delle righe in creaMatrice");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
@@ -34,12 +35,13 @@ void copiaMatrice(cmatrix* dest, cmatrix part) {
 }
 
 // Il metodo freeMatrice() libera gli spazi di memoria dedicati ai numeri complessi e ai puntatori di questi ultimi nella matrice di numeri complessi passata in input
-void freeMatrice(cmatrix m) {
+void freeMatrice(cmatrix* m) {
     //free(m.id);
-    for(int i = 0; i < m.dim; i++) {
-        free(m.m[i]);   // Per ogni riga, libero lo spazio di memoria dedicato ad ospitare i numeri complessi
+    for(int i = 0; i < m->dim; i++) {
+        free(m->m[i]);   // Per ogni riga, libero lo spazio di memoria dedicato ad ospitare i numeri complessi
+        m->m[i] = NULL;
     }
-    free(m.m);  // Libero lo spazio di memoria dedicato ad ospitare i puntatori dei numeri complessi 
+    free(m->m);  // Libero lo spazio di memoria dedicato ad ospitare i puntatori dei numeri complessi 
 }
 
 // Il metodo parseComplesso() si occpua di trasformare il contenuto della stringa "num" in corrispondenti valori accettabili da inserire nel parametro "n", entrambi passati in input

@@ -14,7 +14,7 @@ comp cmol(comp z, comp w);
 double cmod(comp z);
 
 // Il metodo moltiplicaMatrici modifica il la matrice res con i risultati delle moltiplicazioni tra i numeri complessi delle altre due matrici 
-void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix res);
+void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix* res);
 
 // Il metodo calcOut() modifica il vettore di numeri complessi out per contenere il risultato del prodotto tra la matrice di numeri complessi c e il vettore di numeri complessi v presi in input
 void calcOut(cmatrix c, comp* v, comp* out);

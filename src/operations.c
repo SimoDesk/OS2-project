@@ -27,7 +27,7 @@ double cmod(comp z) {
 }
 
 // Il metodo moltiplicaMatrici modifica il la matrice res con i risultati delle moltiplicazioni tra i numeri complessi delle altre due matrici 
-void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix res) {
+void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix* res) {
     int dim = c1.dim;   // In dim inserisco la dimensione delle matrici (tutte della stessa dimensione)
     for(int i = 0; i < dim; i++) {  
         for(int j = 0; j < dim; j++) {
@@ -35,7 +35,7 @@ void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix res) {
             for(int k = 0; k < dim; k++) {
                 sum = cadd(sum, cmol(c1.m[i][k], c2.m[k][j]));  // Calcolo un elemento della somma che rappresenterà un numero complesso della matrice res
             }
-            res.m[i][j] = sum;  // Assegno la somma alla corrispondente coordinata nella matrice res
+            res->m[i][j] = sum;  // Assegno la somma alla corrispondente coordinata nella matrice res
         }
     }
 }

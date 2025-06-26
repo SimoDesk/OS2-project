@@ -43,6 +43,9 @@ int getNqubit(char* content) {
 
 // Il metodo getInit cerca il vettore di numeri complessi specificato dopo "#init" nel contenuto del file passato in input, e se lo trova lo restituisce in output
 void getInit(char* content, comp* init, int dim) {
+
+    int complexCounter = 0;
+
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
     if(copiaContent == NULL) error("Errore allocazione memoria in getInit");    // Se dovessero esserci problemi con l'allocazione della memoria, un errore fermerebbe l'esecuzione
     strcpy(copiaContent, content);  // Copio il contenuto del file nella nuova stringa
@@ -58,7 +61,7 @@ void getInit(char* content, comp* init, int dim) {
         if(strncmp(riga, "init", 4) == 0) {    // Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#init"
             found = true;   // se l'identificatore "#init" è stato trovato all'inizio della riga allora imposto il parametro "found" a True
 
-            int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi del vettore preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
+            int start = (int)(strchr(riga, '[') - riga)+1;    // Dando per scontato che la sintassi del vettore preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
             int end = (int)(strchr(riga, ']') - riga);  // Dando per scontato che la sintassi del vettore preveda un solo carattere ']', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "end"
             
             char init_s[end-start]; // Dichiaro una stringa "init_s" che memorizzerà la sottostringa contenente solo e unicamente il vettore dichiarato dopo "#init"
@@ -72,6 +75,7 @@ void getInit(char* content, comp* init, int dim) {
                 parseComplesso(&init[i], num);  // Finché ci sono numeri complessi nel vettore, utilizzo il metodo parseComplesso() per convertire la stringa in una struct comp
 
                 i++;    // Incrementando "i", tengo il conto dei numeri complessi trovati
+                complexCounter++;
                 num = strtok(NULL, ",");    // Proseguo nel controllo dei numeri complessi, andando al prossimo chiamando nuovamente strtok()  
                 if(i >= dim) break; // Se dovessero essere stati inseriti più numeri complessi di quanto ammesso dal valore definito dopo "#qubit",
             }                       // il programma prenda in considerazione solo i primi che rientrano nel valore consentito
@@ -86,11 +90,19 @@ void getInit(char* content, comp* init, int dim) {
         fprintf(stderr, "identificatore #init NON TROVATO\n");  // Qualora l'identificatore "#init" non dovesse essere stato trovato all'inizio di nessuna riga
         exit(1);                                                // il programma verrebbe interrotto con un errore
     }
+
+    if(complexCounter != dim) {
+        fprintf(stderr, "Dimensione del vettore non corrispondente al numero dei Qubits\n");    
+        exit(1);  
+    }
 }
 
 // Il metodo getMatrix cerca la matrice di numeri complessi specificata dopo "#define" e l'id corrispondente all'omonimo parametro in input.
 // La ricreca avviene nel contenuto del file passato anch'esso passato in input, e se la matrice viene trovata viene assegnata al parametro in input "m"
 void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
+
+    int complexCounter = 0;
+
     m->id = id; // Memorizzo l'id corrispondente della matrice trovato dopo l'identificatore "#circ" nella informazioni della matrice stessa
 
     char* copiaContent = malloc(strlen(content)+1); // Dedico una porzione di memoria ad una copia del file in input, per evitare effetti collaterali sul contenuto originale
@@ -110,7 +122,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
             rimuoviCarattere(tempStr, '\t'); // Rimuovo i tab dalla stringa "tempStr"
 
             char* idFound = malloc(strlen(id)+1);
-            getSubstring(idFound, tempStr, -1, strlen(id));
+            getSubstring(idFound, tempStr, 0, strlen(id));
 
             if(strcmp(idFound, id) == 0) {  // Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input
                 found = true;   // se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True
@@ -125,7 +137,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
                 m->id = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
                 strcpy(m->id, id);
                 
-                int start = (int)(strchr(riga, '[') - riga);    // Dando per scontato che la sintassi della matrice preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
+                int start = (int)(strchr(riga, '[') - riga)+1;    // Dando per scontato che la sintassi della matrice preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start"
                 int end = (int)(strchr(riga, ']') - riga)-1;    // Dando per scontato che la sintassi della matrice preveda un solo carattere ']', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "end"
                 
                 char* matrixContent = malloc(end-start); // Dichiaro una stringa "matrixContent" che memorizzerà la sottostringa contenente solo e unicamente la matrice dichiarato dopo "#define" con il corretto id
@@ -148,6 +160,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
                     while(numComplesso != NULL) {
 
                         parseComplesso(&m->m[i][j], numComplesso);  // Per ogni numero complesso in ogni vettore, utilizzo il metodo parseComplesso() per convertire la stringa in una struct comp
+                        complexCounter++;
 
                         j++;    // Incremento l'indice di colonna
                         numComplesso = strtok_r(NULL, ",", &pt2);      // Proseguo nel controllo dei numeri complessi nel vettore, andando al prossimo chiamando nuovamente strtok()
@@ -168,6 +181,11 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
     if(!found) {
         fprintf(stderr, "identificatore #define (%s) NON TROVATO\n", id); // Qualora l'identificatore "#init" non dovesse essere stato trovato all'inizio di nessuna riga
         exit(1);                                                        // il programma verrebbe interrotto con un errore
+    }
+
+    if(complexCounter != dimensione*dimensione) {
+        fprintf(stderr, "Dimensione delle matrici non corrispondente al numero dei Qubits\n");    
+        exit(1);  
     }
 }
 
