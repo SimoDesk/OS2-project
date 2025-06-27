@@ -121,66 +121,22 @@ void printCoda(coda q) {
     printf("-------\n");
 }
 
-
-
-
 typedef struct {
-    coda *top;
-    coda *bottom;
-    int dim_matrici;
-    pthread_mutex_t lock;
-    pthread_cond_t lavoro_disponibile;
-    pthread_cond_t round_completo;
-    int thread_attivi;
-    bool termina;  // flag di terminazione
-} dati_condivisi;
+    cmatrix* m1;
+    cmatrix* m2;
+    cmatrix* res;
+} thread_data;
 
+void* moltiplicaMatrici_thread(void* arg) {
+    thread_data* data = (thread_data*) arg;
+    moltiplicaMatrici(*data->m1, *data->m2, data->res);
+    free(data->res->id);
+    data->res->id = malloc((strlen(data->m1->id) + strlen(data->m2->id) + 1) * sizeof(char));  // +1 per '\0'
+    if (data->res->id == NULL) error("Allocazione id fallita");
+    strcpy(data->res->id, data->m1->id);
+    strcat(data->res->id, data->m2->id);
 
-void* smooth_operator(void* arg) {
-    dati_condivisi *data = (dati_condivisi*) arg;
-
-    while (1) {
-        pthread_mutex_lock(&data->lock);
-
-        // Aspetta lavoro disponibile o termine
-        while (data->top->occupato < 2 && !data->termina) {
-            pthread_cond_wait(&data->lavoro_disponibile, &data->lock);
-        }
-
-        if (data->termina) {
-            pthread_mutex_unlock(&data->lock);
-            break;
-        }
-
-        data->thread_attivi++;
-        pthread_mutex_unlock(&data->lock);
-
-        // Ora prelevo due matrici dalla coda top (con la loro mutex interna)
-        cmatrix* m1 = dequeue(data->top);
-        cmatrix* m2 = dequeue(data->top);
-
-        cmatrix* res = malloc(sizeof(cmatrix));
-        res->id = "res";
-        if(res == NULL) error("Errore allocazione memoria della matrice prodotto (main -> smooth_operator)");
-        creaMatrice(res, data->dim_matrici);
-
-        moltiplicaMatrici(*m1, *m2, res);
-        freeMatrice(m1);
-        freeMatrice(m2);
-
-        enqueue(data->bottom, res);
-
-        pthread_mutex_lock(&data->lock);
-        data->thread_attivi--;
-
-        // Se non ci sono più thread attivi e la coda top ha meno di 2 elementi, segnala round_completo
-        if (data->thread_attivi == 0 && data->top->occupato < 2) {
-            pthread_cond_signal(&data->round_completo);
-        }
-        pthread_mutex_unlock(&data->lock);
-    }
-
-    return NULL;
+    pthread_exit(NULL);
 }
 
 
@@ -272,13 +228,9 @@ int main() {
     }
     free(circContent);  // Libero lo spazio di memoria dedicato al contenuto file "circ.txt", che ora non serve più
 
-    int n_thread = 0;
+    int thread_necessari = 0;
     printf("Inserire il numero massimo di thread che si desidera utilizzare: ");
-    scanf("%i", &n_thread);  // massimo 99 caratteri per evitare buffer overflow
-
-    if(n_thread > nPort / 2) n_thread = nPort / 2;
-
-    printf("numero thread definitivi %i", n_thread);
+    scanf("%i", &thread_necessari);  // massimo 99 caratteri per evitare buffer overflow
 
     cmatrix cout;   // Creo una matrice cout, che fungerà da accumulatrice durante la serie di moltiplicazioni tra matrici
     creaMatrice(&cout, dim);    // Inizializzo una struttura matrice appena citata di dimensione dim
@@ -295,78 +247,58 @@ int main() {
         enqueue(&top, port[i]);
     }       
 
-    dati_condivisi data;
-    data.top = &top;
-    data.bottom = &bottom;
-    data.dim_matrici = dim;
-    data.thread_attivi = 0;
-    data.termina = false;
+    if(thread_necessari > nPort / 2) thread_necessari = nPort / 2;
+    pthread_t threads[thread_necessari];
 
-    pthread_mutex_init(&data.lock, NULL);
-    pthread_cond_init(&data.lavoro_disponibile, NULL);
-    pthread_cond_init(&data.round_completo, NULL);
+    int prodotti_attesi = 0;
+    int prodotti_effettuati = 0;
 
-    pthread_t threads[n_thread];
-    for (int i = 0; i < n_thread; i++) {
-        int creation_code = pthread_create(&threads[i], NULL, smooth_operator, &data);
-        if (creation_code != 0) {
-            fprintf(stderr, "Errore nella creazione del thread %d: %s\n", i, strerror(creation_code));
-            exit(EXIT_FAILURE);
+    while(top.occupato > 1) {
+        prodotti_attesi = top.occupato / 2;
+        while(prodotti_effettuati < prodotti_attesi) {
+            if(thread_necessari > prodotti_attesi-prodotti_effettuati) thread_necessari = prodotti_attesi-prodotti_effettuati;
+            thread_data* data = malloc(thread_necessari * sizeof(thread_data));
+            
+            for(int i = 0; i < thread_necessari; i++) {
+                cmatrix* m1 = dequeue(&top);
+                cmatrix* m2 = dequeue(&top);
+                cmatrix* res = malloc(sizeof(cmatrix));
+                creaMatrice(res, dim);
+                
+                data[i].m1 = m1;
+                data[i].m2 = m2;
+                data[i].res = res;
+                pthread_create(&threads[i], NULL, moltiplicaMatrici_thread, &data[i]);
+            }
+            
+            for(int i = 0; i < thread_necessari; i++) {
+                pthread_join(threads[i], NULL);
+                enqueue(&bottom, data[i].res);
+                prodotti_effettuati++;
+            }
+            free(data);
         }
-    }
-
-    // Ciclo principale per i round di moltiplicazione
-    pthread_mutex_lock(&data.lock);
-    while ((data.top->occupato > 1) || (data.top->occupato == 0 && data.bottom->occupato > 0)) {
-
-        // Segnala ai thread che ci sono matrici da processare
-        pthread_cond_broadcast(&data.lavoro_disponibile);
-
-        // Aspetta che tutti i thread finiscano il round (top.occupato < 2 e thread_attivi == 0)
-        while (data.top->occupato >= 2 || data.thread_attivi > 0) {
-            pthread_cond_wait(&data.round_completo, &data.lock);
-        }
-
-        // Se rimane una matrice spaiata, la sposto nel bottom
-        if (data.top->occupato == 1) {
-            cmatrix *spaiata = dequeue(&top);
-            enqueue(&bottom, spaiata);
+        
+        if(top.occupato == 1) {
+            enqueue(&bottom, dequeue(&top));
         }
 
-        // Scambia code
-        coda *tmp = data.top;
-        data.top = data.bottom;
-        data.bottom = tmp;
+        coda tmp = top;
+        top = bottom;
+        bottom = tmp;
+
+        prodotti_effettuati = 0;
     }
-    pthread_mutex_unlock(&data.lock);
-
-    // Qui puoi continuare con la parte finale del programma (calcolo output, join thread, cleanup)
-
-    // Terminazione thread
-    pthread_mutex_lock(&data.lock);
-    data.termina = true;
-    pthread_cond_broadcast(&data.lavoro_disponibile);
-    pthread_mutex_unlock(&data.lock);
-
-    for (int i = 0; i < n_thread; i++) {
-        pthread_join(threads[i], NULL);
-    }
+    
 
     // Risultato finale
-    cmatrix *out = dequeue(data.top);
+    cmatrix *out = dequeue(&top);
 
     comp vfin[dim]; // Creo il vettore che rappresenterà la stato finale del circuito di dimenione dim
     calcOut(*out, init, vfin);  // Calcolo il contenuto del vettore finale
     
     printf("\nStato finale del circuito:\n");                       // Infine, stampo in stdout il vettore corrispondente allo stato finale del circuito
     printVector(vfin, dim);                                         //
-
-    // cleanup...
-    freeCoda(&top);
-    freeCoda(&bottom);
-    pthread_mutex_destroy(&data.lock);
-    pthread_cond_destroy(&data.lavoro_disponibile);
-    pthread_cond_destroy(&data.round_completo);
 
     for(int i = 0; i < nPort; i++) {
         free(circ[i]);
