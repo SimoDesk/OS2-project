@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include "types.h"
+#include "queue.h"
 
 // Il metodo error() ha lo scopo di risparimare qualche riga di codice per interrompere il programma
 // in caso di errori di sistema, comunicando un messaggio preso in input
@@ -15,5 +16,8 @@ void printVector(comp* vett, int dim);
 
 // Il metodo printMatrix() ha lo scopo di stampare in maniera leggibile la matrice di numeri complessi preso in input
 void printMatrix(cmatrix matrix);
+
+// Il metodo printCoda() ha lo scopo di stampare in maniera leggibile il contenuto della coda di matrici
+void printCoda(coda q);
 
 #endif // UTIL_H

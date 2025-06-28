@@ -62,7 +62,6 @@ bool checkNorma(comp* v, int dim) {
     if((round(sum * 1e9) / 1e9) == 1.000000000) {   // Verifico se la norma è 1 con una precisione massima di 10^(-9)
         return true;
     } else {
-        fprintf(stderr, "ERRORE, init non è un vettore di norma 1\n");  // Se la norma non è 1, stampo un errore
-        exit(1);                                                        // ed esco dal programma
+        printf("ATTENZIONE, init non è un vettore di norma 1\n");  // Se la norma non è 1, stampo un errore
     }
 }

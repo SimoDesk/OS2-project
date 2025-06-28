@@ -28,5 +28,7 @@ char* getContent(char* path) {
     }
     fclose(f);  // Chiudo il file poiché ho finito di utilizzarlo
 
+    out[dimensioneFile] = '\0'; // Aggiungo il carattere terminatore
+
     return out; // Restiruisco il contenuto del file sotto forma di stringa
 }

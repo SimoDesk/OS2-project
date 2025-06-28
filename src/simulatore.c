@@ -9,126 +9,23 @@
 #include "../include/stringManipolation.h"
 #include "../include/dataGetter.h"
 #include "../include/fileManagement.h"
-
-typedef struct {
-    cmatrix** list;         // Puntatore a array dinamico
-    int dim;             // Dimensione massima
-    int inizio;
-    int fine;
-    int occupato;
-} coda;
-
-void creaCoda(coda* q, int max_dim) {
-    q->list = malloc(sizeof(cmatrix *) * max_dim);
-    if(q->list == NULL) error("Errore allocazione memoria della coda (main)");
-    q->dim = max_dim;
-    q->inizio = 0;
-    q->fine = 0;
-    q->occupato = 0;
-}
-
-void enqueue(coda* q, cmatrix* m) {
-    if (q->occupato == q->dim) {
-        printf("Coda piena!\n");
-        return;
-    }
-
-    q->list[q->fine] = m;
-    q->fine = (q->fine + 1) % q->dim;
-    q->occupato++;
-}
-
-cmatrix* dequeue(coda *q) {
-    if (q->occupato == 0) {
-        printf("Coda vuota!\n");
-        return NULL;
-    }
-
-    cmatrix *m = q->list[q->inizio];
-    q->inizio = (q->inizio + 1) % q->dim;
-    q->occupato--;
-
-    return m;
-}
-
-void resetCoda(coda *q, int max_dim) {
-    // opzionale: libera i dati dentro la coda, se serve
-    for (int i = 0; i < q->occupato; i++) {
-        int idx = (q->inizio + i) % q->dim;
-        if (q->list[idx] != NULL) {
-            freeMatrice(q->list[idx]);
-            q->list[idx] = NULL;
-        }
-    }
-
-    // resetta gli indici
-    q->inizio = 0;
-    q->fine = 0;
-    q->occupato = 0;
-}
-
-
-void freeCoda(coda* q) {
-    for (int i = 0; i < q->occupato; i++) {
-        int idx = (q->inizio + i) % q->dim;
-        if (q->list[idx] != NULL) {
-            freeMatrice(q->list[idx]);
-            q->list[idx] = NULL;
-        }
-    }
-
-    q->inizio = 0;
-    q->fine = 0;
-    q->occupato = 0;
-    q->dim = 0;
-
-    free(q->list);  // libera l'array di puntatori
-}
-
-void printCoda(coda q) {
-    printf("Contenuto coda:\n");
-    for (int i = 0; i < q.occupato; i++) {
-        int idx = (q.inizio + i) % q.dim;
-        if (q.list[idx] != NULL) {
-            printMatrix(*q.list[idx]);
-        }
-    }
-    printf("-------\n");
-}
-
-typedef struct {
-    cmatrix* m1;
-    cmatrix* m2;
-    cmatrix* res;
-} thread_data;
-
-void* moltiplicaMatrici_thread(void* arg) {
-    thread_data* data = (thread_data*) arg;
-    moltiplicaMatrici(*data->m1, *data->m2, data->res);
-    free(data->res->id);
-    data->res->id = malloc((strlen(data->m1->id) + strlen(data->m2->id) + 1) * sizeof(char));  // +1 per '\0'
-    if (data->res->id == NULL) error("Allocazione id fallita");
-    strcpy(data->res->id, data->m1->id);
-    strcat(data->res->id, data->m2->id);
-
-    pthread_exit(NULL);
-}
-
+#include "../include/queue.h"
+#include "../include/thread.h"
 
 int main() {
-    char fileName[100];
+    char fileName[128]; // Inizializzo un array di caratteri che conterrà il nome del file da leggere, con una lunghezza massima di 100 caratteri
 
-    printf("Inserire il nome del file init: ");
+    printf("Inserire il nome del file init: "); // Chiedo all'utente di inserire il nome del file init
     scanf("%99s", fileName);  // massimo 99 caratteri per evitare buffer overflow
 
-    char* initPath = malloc(strlen("input/") + strlen(fileName) + 1);
-    if(initPath == NULL) error("Errore allocazione memoria del path del file init (main)");
-    snprintf(initPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
+    char* initPath = malloc(strlen("input/") + strlen(fileName) + 1);   // Alloco dinamicamente lo spazio di memoria per il path del file init, che sarà "input/" + nome del file + terminatore di stringa
+    if(initPath == NULL) error("Errore allocazione memoria del path del file init (main)"); // Controllo che l'allocazione della memoria sia andata a buon fine 
+                                                                                            // se no, stampo un messaggio di errore e termino l'esecuzione
+    
+    snprintf(initPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);  // Con snprintf, creo il path del file init, che sarà "input/" + nome del file + terminatore di stringa
 
     char* initContent = getContent(initPath);   // All'interno della stringa initContent memorizzo il contenuto del File "init.txt" 
-    rimuoviCarattere(initContent, "\n\t ");
-
-    free(initPath);
+    rimuoviCarattere(initContent, "\n\t "); // Rimuovo i caratteri di nuova linea, tabulazione e spazio dalla stringa initContent
 
     int nQubits = getNqubit(initContent);   // Utilizzo il metodo getNqubit per memorizzare il valore intero specificato in "init.txt" dopo "#qubits"
     int dim = 1 << nQubits; // Con l'operatore shift mi calcolo 2^nQubit e lo memorizzo in dim
@@ -136,34 +33,35 @@ int main() {
     comp init[dim]; // Inizializzo il vettore di numeri complessi che dovrà momorizzare il vettore in "init.txt" dopo "#init"
     getInit(initContent, init, dim);    // Con il metodo getInit, valorizzo il vettore init con i dati nel file, il quale contenuto è in getInit
 
-    //checkNorma(init, dim);  // Controllo che la norma del vettore fornito in input in "init.txt" dopo "#init" sia 1
+    checkNorma(init, dim);  // Controllo che la norma del vettore fornito in input in "init.txt" dopo "#init" sia 1
 
-    free(initContent);  // Libero lo spazio di memoria dedicato al contenuto file "init.txt", che ora non serve più
+    free(initPath); // Libero lo spazio di memoria dedicato al path del file init, che ora non serve più
+    free(initContent);  // Libero lo spazio di memoria dedicato al contenuto file init, che ora non serve più
 
-    printf("Inserire il nome del file circ: ");
+    printf("Inserire il nome del file circ: "); // Chiedo all'utente di inserire il nome del file circ
     scanf("%99s", fileName);  // massimo 99 caratteri per evitare buffer overflow
 
-    char* circPath = malloc(strlen("input/") + strlen(fileName) + 1);
-    if(circPath == NULL) error("Errore allocazione memoria del path del file circ (main)");
-    snprintf(circPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
+    char* circPath = malloc(strlen("input/") + strlen(fileName) + 1);   // Alloco dinamicamente lo spazio di memoria per il path del file circ, che sarà "input/" + nome del file + terminatore di stringa
+    if(circPath == NULL) error("Errore allocazione memoria del path del file circ (main)"); // Controllo che l'allocazione della memoria sia andata a buon fine 
+                                                                                            // se no, stampo un messaggio di errore e termino l'esecuzione
+    
+    snprintf(circPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);  // Con snprintf, creo il path del file circ, che sarà "input/" + nome del file + terminatore di stringa
 
     char* circContent = getContent(circPath);   // All'interno della stringa initContent memorizzo il contenuto del File "circ.txt" 
-    rimuoviCarattere(circContent, "\n\t");
+    rimuoviCarattere(circContent, "\n\t");  // Rimuovo i caratteri di nuova linea, tabulazione e spazio dalla stringa circContent
 
-    free(circPath);
-
-    char* circStr = NULL;
+    char* circStr = NULL;   // Inizializzo la stringa circStr, che conterrà gli id delle porte del circuito
                                             // questa verrà espansa dinamicamente a seconda di quante porte sono state selezionate per fare parte del circuito  
                                             // nel file "circ.txt" dopo "#circ"
     getCirc(circContent, &circStr); // Con il metodo getCirc, inserisco dinamicamente nella stringa circ le porte che fanno parte del ciruito definite nel file "circ.txt" dopo "#circ"
     
     int nPort = 0;  // In nPort, memorizzo la quantitò di porte che fanno parte del circuito
 
-    char** circ = NULL;
-    char* id = strtok(circStr, " ");
-    while (id != NULL)
+    char** circ = NULL; // Inizializzo un array di puntatori a stringhe che conterrà gli id delle porte del circuito, che sono memorizzati in circStr
+    char* id = strtok(circStr, " ");    // Con strtok, divido la stringa circStr in id delle porte, separati da uno spazio
+    while (id != NULL)  // Finché ci sono id da leggere, continuo a leggere
     {
-        nPort++;
+        nPort++;    // Incremento il contatore delle porte del circuito
 
         char** temp = realloc(circ, nPort * sizeof(char*));   // A partire dalla grandezza dello spazio di memoria del parametro "circ", creo in "temp" una dimensinoe sufficente
                                                                             // a memorizzare tutti gli id senza sprecare memoria
@@ -174,111 +72,120 @@ int main() {
             }
             circ = temp;    // Riassegno a circ lo spazio di memoria ora allargato della dimensione perfetta per ospitare la sequenza
 
-            circ[nPort-1] = malloc((strlen(id)+1) * sizeof(char));
-            if(circ[nPort-1] == NULL) error("Errore allocazione memoria dell'id di una matrice in circ (main)");
-            strcpy(circ[nPort-1], id);
+            circ[nPort-1] = malloc((strlen(id)+1) * sizeof(char));  // Alloco dinamicamente lo spazio di memoria per l'id della porta corrente, che è una stringa
+            if(circ[nPort-1] == NULL) error("Errore allocazione memoria dell'id di una matrice in circ (main)");    // Controllo che l'allocazione della memoria sia andata a buon fine
+                                                                                                                    // se no, stampo un messaggio di errore e termino l'esecuzione
+            strcpy(circ[nPort-1], id);  // Copio l'id della porta corrente nella posizione corretta dell'array di puntatori a stringhe circ
 
-        id = strtok(NULL, " ");   
+        id = strtok(NULL, " ");   // Continuo a leggere gli id delle porte del circuito, separati da uno spazio
     }
-    free(circStr);
+    free(circStr);  // Libero lo spazio di memoria dedicato alla stringa circStr, che ora non serve più
 
-    cmatrix** port = malloc(nPort * sizeof(cmatrix*));
+    cmatrix** port = malloc(nPort * sizeof(cmatrix*));  // Alloco dinamicamente lo spazio di memoria per un array di puntatori a matrici di numeri complessi, che conterrà le porte del circuito
     if (port == NULL) {
-        perror("Errore allocazione memoria per puntatori a matrici di porte (main)");
+        perror("Errore allocazione memoria per puntatori a matrici di porte (main)");   // Controllo che l'allocazione della memoria sia andata a buon fine
+                                                                                        // Se no, stampo un messaggio di errore e
         exit(EXIT_FAILURE);
     }
 
-    for(int i = 0; i < nPort; i++) {
+    for(int i = 0; i < nPort; i++) {    // Per ogni porta del circuito, alloco dinamicamente lo spazio di memoria per una matrice di numeri complessi
         port[i] = malloc(sizeof(cmatrix)); // Alloca la struttura cmatrix
-        if(port[i] == NULL) {
-            perror("Errore allocazione memoria della struttura cmatrix per porta (main)");
-            // Libera la memoria già allocata prima di uscire
-            for (int j = 0; j < i; j++) {
+        if(port[i] == NULL) {                                                               // Controllo che l'allocazione della memoria sia andata a buon fine
+            perror("Errore allocazione memoria della struttura cmatrix per porta (main)");  // Se no, stampo un messaggio di errore 
+            for (int j = 0; j < i; j++) {   // Libera la memoria già allocata prima di uscire
                 freeMatrice(port[j]);
                 free(port[j]);
             }
-            free(port);
-            exit(EXIT_FAILURE);
+            free(port); 
+            exit(EXIT_FAILURE); // ed esco dal programma
         }
         creaMatrice(port[i], dim); // Inizializza i dati interni della matrice
-        getMatrix(port[i], circContent, circ[i], dim);
-    }
-    free(circContent);  // Libero lo spazio di memoria dedicato al contenuto file "circ.txt", che ora non serve più
 
-    int thread_necessari = 0;
-    printf("Inserire il numero massimo di thread che si desidera utilizzare: ");
-    int output_scan = scanf("%i", &thread_necessari);  // massimo 99 caratteri per evitare buffer overflow
-    if(output_scan == 1) {
-        if(thread_necessari < 0) {
-            fprintf(stderr, "Il numero di thread deve essere positivo!\n");    
-            exit(1);
-        }
-    } else {
-        fprintf(stderr, "Non è stato inserito un numero...\n");    
-        exit(1);
-    }
-
-    cmatrix cout;   // Creo una matrice cout, che fungerà da accumulatrice durante la serie di moltiplicazioni tra matrici
-    creaMatrice(&cout, dim);    // Inizializzo una struttura matrice appena citata di dimensione dim
-
-    cmatrix temp;   // Creo una matrice temp, che nella serie di moltiplicazioni tra matrici avrà il ruolo di contenere una copia del contenuto della matrice risultante
-                    // della moltiplicazione precedente, così da non creare sovrascrizioni durante i calcoli
-    creaMatrice(&temp, dim);    // Inizializzo una struttura matrice appena citata di dimensione dim
-
-    coda top;
-    coda bottom;
-    creaCoda(&top, nPort);
-    creaCoda(&bottom, nPort);
-    for(int i = nPort-1; i >= 0; i--) {
-        enqueue(&top, port[i]);
-    }       
-
-    if(thread_necessari > nPort / 2) thread_necessari = nPort / 2;
-    pthread_t threads[thread_necessari];
-
-    int prodotti_attesi = 0;
-    int prodotti_effettuati = 0;
-
-    while(top.occupato > 1) {
-        prodotti_attesi = top.occupato / 2;
-        while(prodotti_effettuati < prodotti_attesi) {
-            if(thread_necessari > prodotti_attesi-prodotti_effettuati) thread_necessari = prodotti_attesi-prodotti_effettuati;
-            thread_data* data = malloc(thread_necessari * sizeof(thread_data));
-            
-            for(int i = 0; i < thread_necessari; i++) {
-                cmatrix* m1 = dequeue(&top);
-                cmatrix* m2 = dequeue(&top);
-                cmatrix* res = malloc(sizeof(cmatrix));
-                creaMatrice(res, dim);
-                
-                data[i].m1 = m1;
-                data[i].m2 = m2;
-                data[i].res = res;
-                pthread_create(&threads[i], NULL, moltiplicaMatrici_thread, &data[i]);
-            }
-            
-            for(int i = 0; i < thread_necessari; i++) {
-                pthread_join(threads[i], NULL);
-                enqueue(&bottom, data[i].res);
-                prodotti_effettuati++;
-            }
-            free(data);
-        }
-        
-        if(top.occupato == 1) {
-            enqueue(&bottom, dequeue(&top));
-        }
-
-        coda tmp = top;
-        top = bottom;
-        bottom = tmp;
-
-        prodotti_effettuati = 0;
+        getMatrix(port[i], circContent, circ[i], dim);  // Con il metodo getMatrix, valorizzo la matrice port[i] con i dati nel file "circ.txt" dopo "#circ"
     }
     
+    free(circPath); // Libero lo spazio di memoria dedicato al path del file circ, che ora non serve più
+    free(circContent);  // Libero lo spazio di memoria dedicato al contenuto file "circ.txt", che ora non serve più
 
-    // Risultato finale
-    cmatrix *out = dequeue(&top);
+    int thread_necessari = 0;   // Inizializzo il numero di thread che saranno necessari per l'esecuzione del programma
+    printf("Inserire il numero massimo di thread che si desidera utilizzare: ");
+    int output_scan = scanf("%i", &thread_necessari);  // massimo 99 caratteri per evitare buffer overflow
+    if(output_scan == 1) {  // Controllo che l'input sia stato letto correttamente
+        if(thread_necessari < 0) {  
+            fprintf(stderr, "Il numero di thread deve essere positivo!\n"); // Se il numero di thread è negativo, stampo un messaggio di errore
+            exit(1);                                                        // ed esco dal programma
+        }
+    } else {    
+        fprintf(stderr, "Non è stato inserito un numero...\n"); // Se l'input non è stato letto correttamente, stampo un messaggio di errore
+        exit(1);                                                // ed esco dal programma        
+    }
+
+    coda top;   // Creo la coda che conterrà le matrici da moltiplicare
+    coda bottom;    // Creo la coda che conterrà i risultati delle moltiplicazioni
+    creaCoda(&top, nPort);  // Inizializzo la coda che conterrà le matrici da moltiplicare
+    creaCoda(&bottom, nPort);   // Inizializzo la coda che conterrà i risultati delle moltiplicazioni
+    for(int i = nPort-1; i >= 0; i--) {
+        enqueue(&top, port[i]); // Inserisco le matrici delle porte nella coda top, in modo che siano pronte per essere moltiplicate
+    }       
+
+    if(thread_necessari > nPort / 2) thread_necessari = nPort / 2; // Se il numero di thread richiesti è maggiore della metà delle porte, lo riduco a metà per evitare di creare più thread del necessario
+    pthread_t threads[thread_necessari];    // Inizializzo l'array di thread che verranno utilizzati per eseguire le moltiplicazioni in parallelo
+
+    int prodotti_attesi = 0;    // Inizializzo il numero di prodotti attesi, che sarà pari alla metà del numero di matrici nella coda top
+    int prodotti_effettuati = 0;    // Inizializzo il numero di prodotti effettuati, che sarà inizialmente 0
+
+    while(top.occupato > 1) {   // Finché ci sono più di una matrice nella coda top, continuo a moltiplicare le matrici
+        
+        prodotti_attesi = top.occupato / 2; // Calcolo il numero di prodotti attesi, che sarà pari alla metà del numero di matrici nella coda top
+        
+        while(prodotti_effettuati < prodotti_attesi) {  // Finché non ho effettuato il numero di prodotti attesi, continuo a moltiplicare le matrici
+           
+            if(thread_necessari > prodotti_attesi-prodotti_effettuati) thread_necessari = prodotti_attesi-prodotti_effettuati;  // Se il numero di thread richiesti è maggiore del numero di prodotti attesi, lo riduco al numero di prodotti attesi
+            
+            thread_data* data = malloc(thread_necessari * sizeof(thread_data)); // Alloco dinamicamente lo spazio di memoria per l'array di strutture thread_data, che conterrà i dati da passare ai thread
+            
+            for(int i = 0; i < thread_necessari; i++) { // Per ogni thread necessario, creo una struttura thread_data che conterrà i dati da passare al thread
+                
+                cmatrix* m1 = dequeue(&top);    // Dequeue restituisce la matrice  1 da moltiplicare in testa alla coda top e la rimuove dalla coda
+                cmatrix* m2 = dequeue(&top);    // Dequeue restituisce la matrice  1 da moltiplicare in testa alla coda top e la rimuove dalla coda
+                cmatrix* res = malloc(sizeof(cmatrix)); // Alloco dinamicamente lo spazio di memoria per la matrice di risultato, che conterrà il risultato della moltiplicazione delle due matrici
+
+                creaMatrice(res, dim);  // Inizializzo i dati interni della matrice di risultato
+                
+                data[i].m1 = m1;    // Assegno il puntatore alla prima matrice alla struttura thread_data
+                data[i].m2 = m2;    // Assegno il puntatore alla seconda matrice alla struttura thread_data
+                data[i].res = res;  // Assegno il puntatore alla matrice di risultato alla struttura thread_data
+
+                pthread_create(&threads[i], NULL, moltiplicaMatrici_thread, &data[i]);  // Creo il thread che eseguirà la moltiplicazione delle due matrici, passando i dati della struttura thread_data come argomento
+            }
+            
+            for(int i = 0; i < thread_necessari; i++) { // Attendo che tutti i thread abbiano terminato l'esecuzione
+                pthread_join(threads[i], NULL);
+
+                freeMatrice(data[i].m1);    // Libero lo spazio di memoria dedicato alla matrice m1, che ora non serve più
+                free(data[i].m1);   // Libero lo spazio di memoria dedicato al puntatore m1, che ora non serve più
+
+                freeMatrice(data[i].m2);    // Libero lo spazio di memoria dedicato alla matrice m2, che ora non serve più
+                free(data[i].m2);   //  Libero lo spazio di memoria dedicato al puntatore m2, che ora non serve più
+
+                enqueue(&bottom, data[i].res);  // Inserisco la matrice di risultato nella coda bottom, che conterrà i risultati delle moltiplicazioni
+                prodotti_effettuati++;  // Incremento il numero di prodotti effettuati
+            }
+            free(data); // Libero lo spazio di memoria dedicato all'array di strutture thread_data, che per questo ciclo non serve più
+        }
+        
+        if(top.occupato == 1) { 
+            enqueue(&bottom, dequeue(&top));    // Se nella coda top è rimasta una sola matrice, la inserisco nella coda bottom
+        }
+
+        coda tmp = top; //
+        top = bottom;   // Scambio le code top e bottom, in modo che la coda top contenga i risultati delle moltiplicazioni e la coda bottom contenga le matrici da moltiplicare
+        bottom = tmp;   //
+
+        prodotti_effettuati = 0;    // Inizializzo il numero di prodotti effettuati a 0, in modo da poter ricominciare il ciclo con un nuovo set di matrici da moltiplicare
+    }
+    
+    cmatrix *out = dequeue(&top);   // Dequeue restituisce la matrice finale risultato dei prodotti in testa alla coda top e la rimuove dalla coda, che sarà l'unica matrice rimasta nella coda top
 
     comp vfin[dim]; // Creo il vettore che rappresenterà la stato finale del circuito di dimenione dim
     calcOut(*out, init, vfin);  // Calcolo il contenuto del vettore finale
@@ -286,44 +193,17 @@ int main() {
     printf("\nStato finale del circuito:\n");                       // Infine, stampo in stdout il vettore corrispondente allo stato finale del circuito
     printVector(vfin, dim);                                         //
 
+    freeCoda(&top); // Libero la coda top, che ora non serve più
+    freeCoda(&bottom);  // Libero la coda bottom, che ora non serve più
     for(int i = 0; i < nPort; i++) {
-        free(circ[i]);
+        free(circ[i]);  // Libero lo spazio di memoria dedicato alla stringa che contiene l'id di ogni porta, che ora non servono più
     }
     free(circ);     // Libero lo spazio di memoria dedicato alla sequenza di porte, che ora non serve più
+   
+    freeMatrice(out);   // Libero lo spazio di memoria dedicato alla matrice di risultato finale, che ora non serve più
+    free(out);  // Libero lo spazio di memoria dedicato al puntatore alla matrice di risultato finale, che ora non serve più
 
-/*   
-    printf("Vinit di dimensione %i (%i qubits):\n", dim, nQubits);  // 
-    printVector(init, dim);                                         //
-    
-    for(int p = 0; p < nPort; p++) {                                // Stampo in stdout, a scopo di verifica di correzione dei dati, il vettore di input, la dimensione corrispondente
-        printMatrix(port[p]);                                       // ai qBit inseriti, e tutte le matrici lette. Il tutto usando metodi ad hoc per la stampa di vettori e matrici
-    }                                                               //
-    
-    copiaMatrice(&temp, port[nPort-1]); // Copio in temp il contenuto dell'ultima matrice del circuito
+    free(port);  // libera l'array di puntatori
 
-    for(int i = nPort-1; i > 0; i--) {
-            moltiplicaMatrici(temp, port[i-1], &cout);    // Per ogni porta nel circuito, moltiplico quella attuale per la precedente rispetto alla loro posizion in circ e 
-                                                        // memorizzo il risultato in count. 
-            copiaMatrice(&temp, cout);                   // Compio il contenuto di cout in temp per evitare errori e strane sovrapposizioni di matrici nei calcoli
-    }    
-
-    comp vfin[dim]; // Creo il vettore che rappresenterà la stato finale del circuito di dimenione dim
-    calcOut(cout, init, vfin);  // Calcolo il contenuto del vettore finale
-    
-    printf("\nStato finale del circuito:\n");                       // Infine, stampo in stdout il vettore corrispondente allo stato finale del circuito
-    printVector(vfin, dim);                                         //
-    
-
-    for(int i = 0; i < nPort; i++) {
-        free(circ[i]);
-    }
-    free(circ);     // Libero lo spazio di memoria dedicato alla sequenza di porte, che ora non serve più
-
-    freeMatrice(&cout);                  //
-    freeMatrice(&temp);                  //  Libero attraverso un metodo ad hoc gli spazi di memoria dedicati alle matrici cout e temp, nonché
-    for(int i = 0; i < nPort; i++) {    //  tutte le matrici del circuito, che ora arrivati a fine programma non servono più
-        freeMatrice(&port[i]);           //
-    }                                   //
-*/    
     return 0;
 }
