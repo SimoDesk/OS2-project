@@ -16,9 +16,6 @@ typedef struct {
     int inizio;
     int fine;
     int occupato;
-    pthread_mutex_t mutex;
-    pthread_cond_t nonVuota;
-    pthread_cond_t nonPiena;
 } coda;
 
 void creaCoda(coda* q, int max_dim) {
@@ -28,49 +25,33 @@ void creaCoda(coda* q, int max_dim) {
     q->inizio = 0;
     q->fine = 0;
     q->occupato = 0;
-    pthread_mutex_init(&q->mutex, NULL);
-    pthread_cond_init(&q->nonVuota, NULL);
-    pthread_cond_init(&q->nonPiena, NULL);
 }
 
 void enqueue(coda* q, cmatrix* m) {
-    pthread_mutex_lock(&q->mutex);
-
-    while (q->occupato == q->dim) {
-        // coda piena, aspetta che si liberi
-        pthread_cond_wait(&q->nonPiena, &q->mutex);
+    if (q->occupato == q->dim) {
+        printf("Coda piena!\n");
+        return;
     }
 
     q->list[q->fine] = m;
     q->fine = (q->fine + 1) % q->dim;
     q->occupato++;
-
-    pthread_cond_signal(&q->nonVuota);  // avvisa che c’è almeno un elemento
-    pthread_mutex_unlock(&q->mutex);
 }
 
 cmatrix* dequeue(coda *q) {
-    pthread_mutex_lock(&q->mutex);
-
-    while (q->occupato == 0) {
-        printf("coda vuota, aspetta che arrivi un elemento\n");
-        // coda vuota, aspetta che arrivi un elemento
-        pthread_cond_wait(&q->nonVuota, &q->mutex);
+    if (q->occupato == 0) {
+        printf("Coda vuota!\n");
+        return NULL;
     }
 
     cmatrix *m = q->list[q->inizio];
     q->inizio = (q->inizio + 1) % q->dim;
     q->occupato--;
 
-    pthread_cond_signal(&q->nonPiena);  // avvisa che c’è spazio
-    pthread_mutex_unlock(&q->mutex);
-
     return m;
 }
 
 void resetCoda(coda *q, int max_dim) {
-    pthread_mutex_lock(&q->mutex);
-
     // opzionale: libera i dati dentro la coda, se serve
     for (int i = 0; i < q->occupato; i++) {
         int idx = (q->inizio + i) % q->dim;
@@ -84,8 +65,6 @@ void resetCoda(coda *q, int max_dim) {
     q->inizio = 0;
     q->fine = 0;
     q->occupato = 0;
-
-    pthread_mutex_unlock(&q->mutex);
 }
 
 
@@ -104,9 +83,6 @@ void freeCoda(coda* q) {
     q->dim = 0;
 
     free(q->list);  // libera l'array di puntatori
-    pthread_mutex_destroy(&q->mutex);
-    pthread_cond_destroy(&q->nonVuota);
-    pthread_cond_destroy(&q->nonPiena);
 }
 
 void printCoda(coda q) {
@@ -115,7 +91,6 @@ void printCoda(coda q) {
         int idx = (q.inizio + i) % q.dim;
         if (q.list[idx] != NULL) {
             printMatrix(*q.list[idx]);
-            //printf("[%i] %s\n", i, q.list[idx]->id);
         }
     }
     printf("-------\n");
@@ -151,6 +126,7 @@ int main() {
     snprintf(initPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
 
     char* initContent = getContent(initPath);   // All'interno della stringa initContent memorizzo il contenuto del File "init.txt" 
+    rimuoviCarattere(initContent, "\n\t ");
 
     free(initPath);
 
@@ -172,6 +148,7 @@ int main() {
     snprintf(circPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);
 
     char* circContent = getContent(circPath);   // All'interno della stringa initContent memorizzo il contenuto del File "circ.txt" 
+    rimuoviCarattere(circContent, "\n\t");
 
     free(circPath);
 
@@ -230,7 +207,16 @@ int main() {
 
     int thread_necessari = 0;
     printf("Inserire il numero massimo di thread che si desidera utilizzare: ");
-    scanf("%i", &thread_necessari);  // massimo 99 caratteri per evitare buffer overflow
+    int output_scan = scanf("%i", &thread_necessari);  // massimo 99 caratteri per evitare buffer overflow
+    if(output_scan == 1) {
+        if(thread_necessari < 0) {
+            fprintf(stderr, "Il numero di thread deve essere positivo!\n");    
+            exit(1);
+        }
+    } else {
+        fprintf(stderr, "Non è stato inserito un numero...\n");    
+        exit(1);
+    }
 
     cmatrix cout;   // Creo una matrice cout, che fungerà da accumulatrice durante la serie di moltiplicazioni tra matrici
     creaMatrice(&cout, dim);    // Inizializzo una struttura matrice appena citata di dimensione dim
