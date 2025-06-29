@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "../include/util.h"
 #include "../include/types.h"
@@ -13,17 +14,24 @@ void error(char* messaggio) {
 }
 
 // Il metodo printComplex() ha lo scopo di stampare in maniera leggibile il numero complesso preso in input
-void printComplex(comp n) {         
-    printf("%lf i%lf\n", n.r, n.i); // Stampa il numero complesso in formato "reale + immaginario i"
+void printComplex(comp n) {
+    if(n.i >= 0) {  // Se la parte immaginaria del numero complesso è positiva o zero, lo stampo in formato "reale + i immaginario"
+        printf("%.5f+i%.5f", n.r, n.i); 
+    } else {    // Se la parte immaginaria del numero complesso è negativa, lo stampo in formato "reale - i immaginario"
+        double pos_i = fabs(n.i);
+        printf("%.5f-i%.5f", n.r, pos_i); 
+    }
+    
 }
 
 // Il metodo printVector() ha lo scopo di stampare in maniera leggibile il vettore di numeri complessi preso in input
 void printVector(comp* vett, int dim) {
+    printf("[(");
     for(int i = 0; i < dim; i++) {  // Per ogni numero complesso nel vettore, stampo l'indice e il numero stesso
-        printf("[%i] ", i);
         printComplex(vett[i]);
+        if(i < dim-1) printf(", ");
     }
-    printf("\n");
+    printf(")]\n");
 }
 
 // Il metodo printMatrix() ha lo scopo di stampare in maniera leggibile la matrice di numeri complessi preso in input

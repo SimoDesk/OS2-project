@@ -91,7 +91,7 @@ void getInit(char* content, comp* init, int dim) {
             }                       // il programma prenda in considerazione solo i primi che rientrano nel valore consentito
         }
         riga = strtok(NULL, "#");   // Proseguo nel controllo delle righe, andando alla prossima chiamando nuovamente strtok()
-        
+        if (found) riga = NULL; // Seleziono solo la prima riga corretta che incontro, ignorando altre eventuali
     }    
     free(copiaContent); // Libero lo spazio di memoria dedicato alla copia del contenuto del file, che ora non serve più
 
