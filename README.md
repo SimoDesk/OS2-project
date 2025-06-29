@@ -6,11 +6,11 @@
 
 ### Input richiesto
 
-Inserire nella cartella `input` due file con i seguenti nomi e formati:
+Inserire nella cartella `input` due file con i seguenti formati:
 
 ---
 
-#### `init.txt`
+#### `file init`
 
 Contenuto richiesto:
 
@@ -26,11 +26,11 @@ Contenuto richiesto:
 
 ---
 
-#### `circ.txt`
+#### `file circ`
 
 Contenuto richiesto:
 
-- Una o più righe che iniziano con `#define K`, dove `K` è un identificatore (una singola lettera) associato a una matrice di numeri complessi.  
+- Una o più righe che iniziano con `#define K`, dove `K` è un identificatore (uno o più caratteri) associato a una matrice di numeri complessi.  
   La matrice deve:
   - Essere racchiusa tra parentesi quadre `[ ]`
   - Contenere righe (vettori) racchiuse tra parentesi tonde `( )`
@@ -76,4 +76,6 @@ make
 | `operations.c` | Operazioni matematiche tra numeri complessi e matrici |
 | `stringManipolation.c` | Funzioni per manipolazione di stringhe (es. rimozione caratteri, estrazione sottostringhe) |
 | `types.c` | Definizione delle `struct` dati e funzioni di utilità per parsing, copia, ecc. |
+| `queue.c` | Definizione della `struct` coda e delle funzioni a questa associate (es. enqueue & dequeue) |
+| `thread.c` | Funzione eseguita dai thread durante il programma e definizione dei dati passati a questi ultimi |
 | `util.c` | Funzioni di stampa delle `struct` e gestione degli errori |
