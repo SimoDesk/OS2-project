@@ -37,7 +37,7 @@ Contenuto richiesto:
   - Avere numeri complessi formattati correttamente, separati da virgole  
   Il simulatore selezionerà **solo la prima riga** che inizia con ogni identificatore `#define K`, ignorando le eventuali ridefinizioni.
 
-- Una riga che inizia con `#circ`, seguita da una sequenza di lettere che identificano le matrici da applicare nel circuito.  
+- Una riga che inizia con `#circ`, seguita da una sequenza di catatteri e/o stringhe che identificano le matrici da applicare nel circuito.  
   Il simulatore selezionerà **solo la prima riga** che inizia con questo identificatore, ignorando le successive.
 
 ---
