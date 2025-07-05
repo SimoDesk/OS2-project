@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "queue.h": "c",
-        "operations.h": "c"
+        "operations.h": "c",
+        "stdio.h": "c",
+        "stdbool.h": "c",
+        "stdlib.h": "c",
+        "stringmanipolation.h": "c",
+        "math.h": "c"
     }
 }
