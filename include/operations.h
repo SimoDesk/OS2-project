@@ -1,7 +1,6 @@
 #ifndef OPERATIONS_H
 #define OPERATIONS_H
 
-#include <stdbool.h>
 #include "types.h"
 
 /*  Il metodo cadd() ha lo scopo restituire il risultato della somma di due numeri complessi in input */
@@ -20,6 +19,6 @@ void moltiplicaMatrici(cmatrix c1, cmatrix c2, cmatrix* res);
 void calcOut(cmatrix c, comp* v, comp* out);
 
 /*  Il metodo checkNorma() restituisce True se la norma calcolata del vettore passato come input è 1, e restituisce False altrimenti */
-bool checkNorma(comp* v, int dim);
+void checkNorma(comp* v, int dim);
 
 #endif

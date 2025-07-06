@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -55,7 +54,7 @@ void calcOut(cmatrix c, comp* v, comp* out) {
 }
 
 /*  Il metodo checkNorma() restituisce True se la norma calcolata del vettore passato come input è 1, e restituisce False altrimenti */
-bool checkNorma(comp* v, int dim) {
+void checkNorma(comp* v, int dim) {
     double sum = 0;
 
     int i;
@@ -63,9 +62,7 @@ bool checkNorma(comp* v, int dim) {
         sum += (cmod(v[i])*cmod(v[i])); /*  Sommo il quadrato del modulo di ogni elemento del vettore in input */
     }                                   /*  */
 
-    if((round(sum * 1e9) / 1e9) == 1.000000000) {   /*  Verifico se la norma è 1 con una precisione massima di 10^(-9) */
-        return true;
-    } else {
-        printf("ATTENZIONE, init non è un vettore di norma 1\n");  /*  Se la norma non è 1, stampo un errore */
+    if((round(sum * 1e9) / 1e9) != 1.000000000) {   /*  Verifico se la norma è 1 con una precisione massima di 10^(-9) */
+        printf("Init è un vettore di norma %f\n", sum);  /*  Se la norma non è 1, stampo un errore */
     }
 }

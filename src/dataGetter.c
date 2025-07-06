@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "../include/types.h"
@@ -18,10 +17,10 @@ int getNqubit(char* content) {
 
     char* riga = strtok(copiaContent, "#"); /* Inizializzo la variabile "riga" con la prima riga del file, separando le righe con il carattere "#" */
 
-    bool found = false; /* Il parametro "found" verrà impostato a True qualora il valore cercato dovesse essere trovato, e verrà lasciato a False altrimenti */
+    int found = 0; /* Il parametro "found" verrà impostato a True qualora il valore cercato dovesse essere trovato, e verrà lasciato a False altrimenti */
     while (riga != NULL) {
         if(strncmp(riga, "qubits", 6) == 0) {  /* Finché ci sono righe nel file, controllo se i primi 7 caratteri della riga corrente corrispondono all'identificatore "#qubits" */
-            found = true;   /* se l'identificatore "#qubits" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
+            found = 1;   /* se l'identificatore "#qubits" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
 
             char temp[strlen(riga)-5];  /* Creo una stringa che conterrà il valore specificato dopo "#qubits" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso */
             getSubstring(temp, riga, 6, strlen(riga)+1);    /* Copio nella stringa "temp" il contenuto del resto della riga (tutto meno l'identificatore) */
@@ -55,10 +54,10 @@ void getInit(char* content, comp* init, int dim) {
     strcpy(copiaContent, content);  /* Copio il contenuto del file nella nuova stringa */
 
     char* riga = strtok(copiaContent, "#"); /* Inizializzo la variabile "riga" con la prima riga del file, separando le righe con il carattere "#" */
-    bool found = false; /* Il parametro "found" verrà impostato a True qualora il vettore cercato dovesse essere trovato, e verrà lasciato a False altrimenti */
+    int found = 0; /* Il parametro "found" verrà impostato a True qualora il vettore cercato dovesse essere trovato, e verrà lasciato a False altrimenti */
     while (riga != NULL) {
         if(strncmp(riga, "init", 4) == 0) {    /* Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#init" */
-            found = true;   /* se l'identificatore "#init" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
+            found = 1;   /* se l'identificatore "#init" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
 
             char* pos_start = strchr(riga, '[');    /* Dando per scontato che la sintassi del vettore preveda un solo carattere '[', ne ricavo la posizione con il metodo strchr() e la memorizzo nel parametro "start" */
             if (pos_start == NULL) {    /* Se il carattere '[' non viene trovato, significa che la sintassi del vettore non è corretta */
@@ -139,7 +138,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
     
     c = 0; /* Resetto il contatore per poterlo riutilizzare */
 
-    bool found = false; /* Il parametro "found" verrà impostato a True qualora la matrice cercata dovesse essere trovata, e verrà lasciato a False altrimenti */
+    int found = 0; /* Il parametro "found" verrà impostato a True qualora la matrice cercata dovesse essere trovata, e verrà lasciato a False altrimenti */
     for(c = 0; c < n_righe; c++) { /* Per ogni riga del file, controllo se l'id della matrice corrisponde a quello passato in input */
         if(strncmp(righe[c], "define", 6) == 0) {  /* Finché ci sono righe nel file, controllo se i primi 7 caratteri della riga corrente corrispondono all'identificatore "#define" */
             char* tempStr = malloc(strlen(righe[c])-5);   /* Creo una stringa che conterrà la sottostringa dopo "#define" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso */
@@ -152,7 +151,7 @@ void getMatrix(cmatrix* m, char* content, char* id, int dimensione) {
             getSubstring(idFound, tempStr, 0, strlen(id));  /* Con il metodo getSubstring() creo in "idFound" una copia della sottostringa corrispondente all'id della matrice dichiarato dopo "#define" */
 
             if(strcmp(idFound, id) == 0) {  /* Controllo se l'id della matrice corrisponde a l'omonimo parametro passato in input */
-                found = true;   /* se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
+                found = 1;   /* se l'identificatore "#define" con il corretto id è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
 
                 free(m->id);    /* Libero lo spazio di memoria precedentemente allocato per l'id della matrice */
                 m->id = strDuplicate(id);  /* strdup già alloca la memoria e copia la stringa */
@@ -272,10 +271,10 @@ void getCirc(char* content, char** circ) {
 
     char* riga = strtok(copiaContent, "#"); /* Inizializzo la variabile "riga" con la prima riga del file, separando le righe con il carattere "#" */   
 
-    bool found = false; /* Il parametro "found" verrà impostato a True qualora la sequenza cercata dovesse essere trovata, e verrà lasciato a False altrimenti */
+    int found = 0; /* Il parametro "found" verrà impostato a True qualora la sequenza cercata dovesse essere trovata, e verrà lasciato a False altrimenti */
     while (riga != NULL) {
         if(strncmp(riga, "circ", 4) == 0) {    /* Finché ci sono righe nel file, controllo se i primi 5 caratteri della riga corrente corrispondono all'identificatore "#circ" */
-            found = true;   /* se l'identificatore "#circ" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
+            found = 1;   /* se l'identificatore "#circ" è stato trovato all'inizio della riga allora imposto il parametro "found" a True */
 
             char tempStr[strlen(riga)-4];   /* Creo una stringa che conterrà il valore specificato dopo "#circ" della dimensione sufficiente a comprendere tutto meno l'identifictore stesso */
             getSubstring(tempStr, riga, 4, strlen(riga)+1);  /* Copio nella stringa "tempStr" il contenuto del resto della riga (tutto meno l'identificatore) */
