@@ -12,17 +12,18 @@
 #include "../include/queue.h"
 #include "../include/thread.h"
 
-int main() {
-    char fileName[128]; /* Inizializzo un array di caratteri che conterrà il nome del file da leggere, con una lunghezza massima di 100 caratteri */
+int main(int argc, char* argv[]) {
 
-    printf("Inserire il nome del file init: "); /* Chiedo all'utente di inserire il nome del file init */
-    scanf("%99s", fileName);  /* massimo 99 caratteri per evitare buffer overflow */
+    if (argc != 4) {
+        printf("Errore, l'esecuzione deve avere questo formato: ./simulatore <initFile> <circFile> <Nqubits>\n");
+        return 1;
+    }
 
-    char* initPath = malloc(strlen("input/") + strlen(fileName) + 1);   /* Alloco dinamicamente lo spazio di memoria per il path del file init, che sarà "input/" + nome del file + terminatore di stringa */
+    char* initPath = malloc(strlen("input/") + strlen(argv[1]) + 1);   /* Alloco dinamicamente lo spazio di memoria per il path del file init, che sarà "input/" + nome del file + terminatore di stringa */
     if(initPath == NULL) error("Errore allocazione memoria del path del file init (main)"); /* Controllo che l'allocazione della memoria sia andata a buon fine  */
                                                                                             /* se no, stampo un messaggio di errore e termino l'esecuzione */
     
-    snprintf(initPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);  /* Con snprintf, creo il path del file init, che sarà "input/" + nome del file + terminatore di stringa */
+    snprintf(initPath, strlen("input/") + strlen(argv[1]) + 1, "input/%s", argv[1]);  /* Con snprintf, creo il path del file init, che sarà "input/" + nome del file + terminatore di stringa */
 
     char* initContent = getContent(initPath);   /* All'interno della stringa initContent memorizzo il contenuto del File "init.txt"  */
     rimuoviCarattere(initContent, "\n\t "); /* Rimuovo i caratteri di nuova linea, tabulazione e spazio dalla stringa initContent */
@@ -38,14 +39,11 @@ int main() {
     free(initPath); /* Libero lo spazio di memoria dedicato al path del file init, che ora non serve più */
     free(initContent);  /* Libero lo spazio di memoria dedicato al contenuto file init, che ora non serve più */
 
-    printf("Inserire il nome del file circ: "); /* Chiedo all'utente di inserire il nome del file circ */
-    scanf("%99s", fileName);  /* massimo 99 caratteri per evitare buffer overflow */
-
-    char* circPath = malloc(strlen("input/") + strlen(fileName) + 1);   /* Alloco dinamicamente lo spazio di memoria per il path del file circ, che sarà "input/" + nome del file + terminatore di stringa */
+    char* circPath = malloc(strlen("input/") + strlen(argv[2]) + 1);   /* Alloco dinamicamente lo spazio di memoria per il path del file circ, che sarà "input/" + nome del file + terminatore di stringa */
     if(circPath == NULL) error("Errore allocazione memoria del path del file circ (main)"); /* Controllo che l'allocazione della memoria sia andata a buon fine  */
                                                                                             /* se no, stampo un messaggio di errore e termino l'esecuzione */
     
-    snprintf(circPath, strlen("input/") + strlen(fileName) + 1, "input/%s", fileName);  /* Con snprintf, creo il path del file circ, che sarà "input/" + nome del file + terminatore di stringa */
+    snprintf(circPath, strlen("input/") + strlen(argv[2]) + 1, "input/%s", argv[2]);  /* Con snprintf, creo il path del file circ, che sarà "input/" + nome del file + terminatore di stringa */
 
     char* circContent = getContent(circPath);   /* All'interno della stringa initContent memorizzo il contenuto del File "circ.txt"  */
     rimuoviCarattere(circContent, "\n\t");  /* Rimuovo i caratteri di nuova linea, tabulazione e spazio dalla stringa circContent */
@@ -121,17 +119,13 @@ int main() {
     free(circPath); /* Libero lo spazio di memoria dedicato al path del file circ, che ora non serve più */
     free(circContent);  /* Libero lo spazio di memoria dedicato al contenuto file "circ.txt", che ora non serve più */
 
-    int thread_necessari = 0;   /* Inizializzo il numero di thread che saranno necessari per l'esecuzione del programma */
-    printf("Inserire il numero massimo di thread che si desidera utilizzare: ");
-    int output_scan = scanf("%i", &thread_necessari);  /* massimo 99 caratteri per evitare buffer overflow */
-    if(output_scan == 1) {  /* Controllo che l'input sia stato letto correttamente */
-        if(thread_necessari < 0) {  
-            fprintf(stderr, "Il numero di thread deve essere positivo!\n"); /* Se il numero di thread è negativo, stampo un messaggio di errore */
-            exit(1);                                                        /* ed esco dal programma */
-        }
-    } else {    
-        fprintf(stderr, "Non è stato inserito un numero...\n"); /* Se l'input non è stato letto correttamente, stampo un messaggio di errore */
-        exit(1);                                                /* ed esco dal programma       */  
+    int thread_necessari = atoi(argv[3]);   /* Inizializzo il numero di thread necessari, che sarà pari al terzo argomento passato in input al programma */
+
+    char *endptr;
+    thread_necessari = strtol(argv[3], &endptr, 10); /* Con strtol, converto il terzo argomento passato in input al programma in un intero, che rappresenta il numero di thread necessari */
+    if (*endptr != '\0') {
+        printf("Errore: il terzo argomento deve essere un numero intero valido.\n");    /* Controllo che il terzo argomento passato in input al programma sia un numero intero valido */
+        return 1;
     }
 
     coda top;   /* Creo la coda che conterrà le matrici da moltiplicare */

@@ -44,12 +44,15 @@ Contenuto richiesto:
 
 ### Esecuzione
 
-Per eseguire il progetto è sufficiente aprire il terminale nella cartella dov'è presente il Makefile e lanciare il comando:
+Per eseguire il progetto bisogna aprire il terminale nella cartella dov'è presente il Makefile e lanciare il comando:
 
 ```
 make
 ```
-
+Dopodiché, è necessario eseguire il programma con un comando di questo formato
+```
+./simulatore <initFile> <circFile> <Nqubits>
+```
 ---
 
 ### Formattazione dei Numeri Complessi
